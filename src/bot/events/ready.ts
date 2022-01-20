@@ -3,7 +3,6 @@ import EventHandler from "../../../lib/classes/EventHandler.js";
 export default class Ready extends EventHandler {
 	override async run() {
 		this.client.dataDog.increment("events", 1, ["event:ready"]);
-		this.client.cache.loadCache();
 		const allGuilds = await this.client.shard?.broadcastEval(async (c) =>
 			c.guilds.cache.map(
 				(guild) => `${guild.name} [${guild.id}] - ${guild.memberCount} members.`
