@@ -3,7 +3,6 @@ import { readFileSync } from "fs";
 import { MongoClient } from "mongodb";
 import * as metrics from "datadog-metrics";
 import { Client, ClientOptions, Collection } from "discord.js";
-import Cache from "../classes/Cache.js";
 import Button from "../classes/Button.js";
 import DropDown from "../classes/DropDown.js";
 import * as Logger from "../classes/Logger.js";
@@ -54,13 +53,6 @@ export default class BetterClient extends Client {
     public cachedStats: CachedStats;
 
     public readonly __dirname: string;
-
-    public readonly cache: Cache;
-
-    public readonly triggers: {
-        suicide: string[];
-        compliments: Record<string, string[]>;
-    };
 
     public readonly dataDog: typeof metrics;
 
@@ -113,13 +105,6 @@ export default class BetterClient extends Client {
         this.slashCommandHandler.loadCommands();
         this.textCommandHandler.loadCommands();
         this.loadEvents();
-
-        this.cache = new Cache(this);
-        this.triggers = JSON.parse(
-            readFileSync(
-                `${(this, this.__dirname)}/lib/utilities/triggers.json`
-            ).toString()
-        );
 
         this.dataDog = metrics;
         if (this.config.dataDog.apiKey?.length) {
