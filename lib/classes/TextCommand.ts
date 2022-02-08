@@ -1,30 +1,70 @@
 import { format } from "@lukeed/ms";
-import { PermissionString, Snowflake } from "discord.js";
+import { MessageEmbedOptions, PermissionString, Snowflake } from "discord.js";
 import { TextCommandOptions } from "../../typings";
 import BetterMessage from "../extensions/BetterMessage";
 import BetterClient from "../extensions/BetterClient.js";
 
 export default class TextCommand {
+    /**
+     * The name for our text command.
+     */
     public readonly name: string;
 
+    /**
+     * The description for our text command.
+     */
     public readonly description: string;
 
+    /**
+     * The aliases for this text command.
+     */
     public readonly aliases: string[];
 
+    /**
+     * The permissions a user would require to execute this text command.
+     */
     public readonly permissions: PermissionString[];
 
+    /**
+     * The permissions the client requires to execute this text command.
+     * @private
+     */
     private readonly clientPermissions: PermissionString[];
 
+    /**
+     * Whether this text command is only for developers.
+     * @private
+     */
     private readonly devOnly: boolean;
 
+    /**
+     * Whether this text command is only to be used in guilds.
+     * @private
+     */
     private readonly guildOnly: boolean;
 
+    /**
+     * Whether this slash command is only to be used by guild owners.
+     * @private
+     */
     private readonly ownerOnly: boolean;
 
+    /**
+     * The cooldown for this slash command.
+     */
     public readonly cooldown: number;
 
+    /**
+     * Our client.
+     */
     public readonly client: BetterClient;
 
+    /**
+     * Create our text command,
+     * @param name The name of our text command.
+     * @param client Our client.
+     * @param options The options for our text command.
+     */
     constructor(
         name: string,
         client: BetterClient,
@@ -48,19 +88,29 @@ export default class TextCommand {
         this.client = client;
     }
 
-    public applyCooldown(userId: Snowflake): boolean {
+    /**
+     * Apply the cooldown for this text command.
+     * @param userId The userId to apply the cooldown on.
+     * @returns True or false if the cooldown is actually applied.
+     */
+    public async applyCooldown(userId: Snowflake): Promise<boolean> {
         if (this.cooldown)
-            return !!this.client.mongo
+            return !!(await this.client.mongo
                 .db("cooldowns")
                 .collection("textCommands")
                 .updateOne(
                     { textCommand: this.name.toLowerCase() },
                     { $set: { [userId]: Date.now() } },
                     { upsert: true }
-                );
+                ));
         return false;
     }
 
+    /**
+     * Validate this interaction to make sure this text command can be executed.
+     * @param message The interaction that was created.
+     * @returns Options for the embed to send or null if the text command is valid.
+     */
     public async validate(
         message: BetterMessage
     ): Promise<{ title: string; description: string } | null> {
@@ -145,6 +195,21 @@ export default class TextCommand {
         return null;
     }
 
+    /**
+     * This function must be evaluated to true or else this text command will not be executed.
+     * @param _message The message that was created.
+     */
+    public async preCheck(
+        _message: BetterMessage
+    ): Promise<[boolean, MessageEmbedOptions?]> {
+        return [true];
+    }
+
+    /**
+     * Run this text command.
+     * @param _message The message that was created.
+     * @param _args
+     */
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public async run(message: BetterMessage, args: string[]): Promise<any> {}
+    public async run(_message: BetterMessage, _args: string[]): Promise<any> {}
 }

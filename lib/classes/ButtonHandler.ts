@@ -4,12 +4,28 @@ import { ButtonInteraction } from "discord.js";
 import BetterClient from "../extensions/BetterClient.js";
 
 export default class ButtonHandler {
+    /**
+     * Our client.
+     * @private
+     */
     private readonly client: BetterClient;
 
+    /**
+     * How long a user must wait between each button.
+     * @private
+     */
     private readonly coolDownTime: number;
 
+    /**
+     * Our user's cooldowns.
+     * @private
+     */
     private readonly coolDowns: Set<string>;
 
+    /**
+     * Create our ButtonHandler.
+     * @param client Our client.
+     */
     constructor(client: BetterClient) {
         this.client = client;
 
@@ -17,6 +33,9 @@ export default class ButtonHandler {
         this.coolDowns = new Set();
     }
 
+    /**
+     * Load all the buttons in the buttons directory.
+     */
     public loadButtons() {
         this.client.functions
             .getFiles(`${this.client.__dirname}/dist/src/bot/buttons`, "", true)
@@ -39,12 +58,30 @@ export default class ButtonHandler {
             );
     }
 
+    /**
+     * Reload all the buttons in the buttons directory.
+     */
+    public reloadButtons() {
+        this.client.buttons.clear();
+        this.loadButtons();
+    }
+
+    /**
+     * Fetch the button that starts with the provided customId.
+     * @param customId The customId to search for.
+     * @returns The button we've found.
+     * @private
+     */
     private fetchButton(customId: string): Button | undefined {
         return this.client.buttons.find(button =>
             customId.startsWith(button.name)
         );
     }
 
+    /**
+     * Handle the interaction created for this button to make sure the user and client can execute it.
+     * @param interaction The interaction created.
+     */
     public async handleButton(interaction: ButtonInteraction) {
         const button = this.fetchButton(interaction.customId);
         if (
@@ -66,10 +103,13 @@ export default class ButtonHandler {
         return this.runButton(button, interaction);
     }
 
-    private async runButton(
-        button: Button,
-        interaction: ButtonInteraction
-    ): Promise<any> {
+    /**
+     * Execute our button.
+     * @param button The button we want to execute.
+     * @param interaction The interaction for our button.
+     * @private
+     */
+    private async runButton(button: Button, interaction: ButtonInteraction) {
         if (this.coolDowns.has(interaction.user.id))
             return interaction.reply(
                 this.client.functions.generateErrorMessage({

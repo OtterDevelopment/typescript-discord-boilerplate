@@ -2,6 +2,7 @@ import { format } from "@lukeed/ms";
 import {
     ApplicationCommandOptionData,
     CommandInteraction,
+    MessageEmbedOptions,
     PermissionString,
     Snowflake
 } from "discord.js";
@@ -9,26 +10,67 @@ import { SlashCommandOptions } from "../../typings";
 import BetterClient from "../extensions/BetterClient.js";
 
 export default class SlashCommand {
+    /**
+     * The name for our slash command.
+     */
     public readonly name: string;
 
+    /**
+     * The description for our slash command.
+     */
     public readonly description: string;
 
+    /**
+     * The options for our slash command.
+     */
     public readonly options: ApplicationCommandOptionData[];
 
+    /**
+     * The permissions a user would require to execute this slash command.
+     * @private
+     */
     private readonly permissions: PermissionString[];
 
+    /**
+     * The permissions the client requires to execute this slash command.
+     * @private
+     */
     private readonly clientPermissions: PermissionString[];
 
+    /**
+     * Whether this slash command is only for developers.
+     * @private
+     */
     private readonly devOnly: boolean;
 
+    /**
+     * Whether this slash command is only to be used in guilds.
+     * @private
+     */
     private readonly guildOnly: boolean;
 
+    /**
+     * Whether this slash command is only to be used by guild owners.
+     * @private
+     */
     private readonly ownerOnly: boolean;
 
+    /**
+     * The cooldown for this slash command.
+     */
     public readonly cooldown: number;
 
+    /**
+     * Our client.
+     */
     public readonly client: BetterClient;
 
+    /**
+     * Create our slash command.
+     * @param name The name of our slash command.
+     * @param client Our client.
+     * @param options The options for our slash command.
+     */
     constructor(
         name: string,
         client: BetterClient,
@@ -52,22 +94,32 @@ export default class SlashCommand {
         this.client = client;
     }
 
-    public applyCooldown(userId: Snowflake): boolean {
+    /**
+     * Apply the cooldown for this slash command.
+     * @param userId The userId to apply the cooldown on.
+     * @returns True or false if the cooldown is actually applied.
+     */
+    public async applyCooldown(userId: Snowflake): Promise<boolean> {
         if (this.cooldown)
-            return !!this.client.mongo
+            return !!(await this.client.mongo
                 .db("cooldowns")
                 .collection("slashCommands")
                 .updateOne(
                     { textCommand: this.name.toLowerCase() },
                     { $set: { [userId]: Date.now() } },
                     { upsert: true }
-                );
+                ));
         return false;
     }
 
+    /**
+     * Validate this interaction to make sure this slash command can be executed.
+     * @param interaction The interaction that was created.
+     * @returns Options for the embed to send or null if the slash command is valid.
+     */
     public async validate(
         interaction: CommandInteraction
-    ): Promise<{ title: string; description: string } | null> {
+    ): Promise<MessageEmbedOptions | null> {
         if (this.guildOnly && !interaction.inGuild())
             return {
                 title: "Missing Permissions",
@@ -151,6 +203,20 @@ export default class SlashCommand {
         return null;
     }
 
+    /**
+     * This function must be evaluated to true or else this slash command will not be executed.
+     * @param _interaction The interaction that was created.
+     */
+    public async preCheck(
+        _interaction: CommandInteraction
+    ): Promise<[boolean, MessageEmbedOptions?]> {
+        return [true];
+    }
+
+    /**
+     * Run this slash command.
+     * @param _interaction The interaction that was created.
+     */
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public async run(interaction: CommandInteraction): Promise<any> {}
+    public async run(_interaction: CommandInteraction): Promise<any> {}
 }

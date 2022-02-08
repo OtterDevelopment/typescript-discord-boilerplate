@@ -1,5 +1,4 @@
 import { resolve } from "path";
-import { readFileSync } from "fs";
 import { MongoClient } from "mongodb";
 import * as metrics from "datadog-metrics";
 import { Client, ClientOptions, Collection } from "discord.js";
@@ -18,44 +17,105 @@ import TextCommandHandler from "../classes/TextCommandHandler.js";
 import SlashCommandHandler from "../classes/SlashCommandHandler.js";
 
 export default class BetterClient extends Client {
+    /**
+     * A set of users that are currently using the bot.
+     */
     public usersUsingBot: Set<string>;
 
+    /**
+     * The config for our client.
+     */
     public readonly config;
 
+    /**
+     * The functions for our client.
+     */
     public readonly functions: Functions;
 
+    /**
+     * The logger for our client.
+     */
     public readonly logger: Logger.Logger;
 
+    /**
+     * The slashCommandHandler for our client.
+     */
     public readonly slashCommandHandler: SlashCommandHandler;
 
+    /**
+     * The slashCommands for our client.
+     */
     public slashCommands: Collection<string, SlashCommand>;
 
+    /**
+     * The textCommandHandler for our client.
+     */
     public readonly textCommandHandler: TextCommandHandler;
 
+    /**
+     * The textCommands for our client.
+     */
     public textCommands: Collection<string, TextCommand>;
 
+    /**
+     * The buttonHandler for our client.
+     */
     public readonly buttonHandler: ButtonHandler;
 
+    /**
+     * The buttons for our client.
+     */
     public buttons: Collection<string, Button>;
 
+    /**
+     * The dropDownHandler for our client.
+     */
     public readonly dropDownHandler: DropDownHandler;
 
+    /**
+     * The dropDowns for our client.
+     */
     public dropDowns: Collection<string, DropDown>;
 
+    /**
+     * The events for our client.
+     */
     public events: Map<string, EventHandler>;
 
+    /**
+     * Our MongoDB database.
+     */
     public readonly mongo: MongoClient;
 
-    public readonly version: string;
-
-    public stats: Stats;
-
-    public cachedStats: CachedStats;
-
-    public readonly __dirname: string;
-
+    /**
+     * Our data dog client.
+     */
     public readonly dataDog: typeof metrics;
 
+    /**
+     * The current version of our client.
+     */
+    public readonly version: string;
+
+    /**
+     * Our client's stats.
+     */
+    public stats: Stats;
+
+    /**
+     * Our client's cached stats.
+     */
+    public cachedStats: CachedStats;
+
+    /**
+     * __dirname is not in our version of ECMA, so we make do with a shitty fix.
+     */
+    public readonly __dirname: string;
+
+    /**
+     * Create our client.
+     * @param options The options for our client.
+     */
     constructor(options: ClientOptions) {
         super(options);
 
@@ -102,11 +162,12 @@ export default class BetterClient extends Client {
 
         this.dropDownHandler.loadDropDowns();
         this.buttonHandler.loadButtons();
-        this.slashCommandHandler.loadCommands();
-        this.textCommandHandler.loadCommands();
+        this.slashCommandHandler.loadSlashCommands();
+        this.textCommandHandler.loadTextCommands();
         this.loadEvents();
 
-        this.dataDog = metrics;
+        // @ts-ignore
+        this.dataDog = metrics.default;
         if (this.config.dataDog.apiKey?.length) {
             this.dataDog.init({
                 flushIntervalSeconds: 0,
@@ -130,18 +191,21 @@ export default class BetterClient extends Client {
         }
     }
 
+    /**
+     * Connect to MongoDB and login to Discord.
+     */
     override async login() {
         await this.mongo.connect();
         return super.login();
     }
 
+    /**
+     * Load all the events in the events directory.
+     * @private
+     */
     private loadEvents() {
         return this.functions
-            .getFiles(
-                `${(this, this.__dirname)}/dist/src/bot/events`,
-                ".js",
-                true
-            )
+            .getFiles(`${this.__dirname}/dist/src/bot/events`, ".js", true)
             .forEach(async eventFileName => {
                 const eventFile = await import(
                     `./../../src/bot/events/${eventFileName}`
@@ -156,6 +220,18 @@ export default class BetterClient extends Client {
             });
     }
 
+    /**
+     * Reload all the events in the events directory.
+     * @private
+     */
+    public reloadEvents() {
+        this.events.forEach(event => event.removeListener());
+        this.loadEvents();
+    }
+
+    /**
+     * Fetch all the stats for our client.
+     */
     public async fetchStats() {
         const stats = await this.shard?.broadcastEval(client => {
             return {

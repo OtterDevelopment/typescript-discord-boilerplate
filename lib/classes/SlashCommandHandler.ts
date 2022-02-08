@@ -1,14 +1,30 @@
-import { CommandInteraction, Snowflake } from "discord.js";
+import { CommandInteraction, Snowflake, Team, User } from "discord.js";
 import SlashCommand from "./SlashCommand";
 import BetterClient from "../extensions/BetterClient.js";
 
 export default class SlashCommandHandler {
+    /**
+     * Our client.
+     * @private
+     */
     private readonly client: BetterClient;
 
+    /**
+     * How long a user must wait between each slash command.
+     * @private
+     */
     private readonly coolDownTime: number;
 
+    /**
+     * Our user's cooldowns.
+     * @private
+     */
     private coolDowns: Set<Snowflake>;
 
+    /**
+     * Create our SlashCommandHandler.
+     * @param client Our client.
+     */
     constructor(client: BetterClient) {
         this.client = client;
 
@@ -16,7 +32,10 @@ export default class SlashCommandHandler {
         this.coolDowns = new Set();
     }
 
-    public loadCommands() {
+    /**
+     * Load all the slash commands in the slashCommands directory.
+     */
+    public loadSlashCommands() {
         this.client.functions
             .getFiles(
                 `${this.client.__dirname}/dist/src/bot/slashCommands`,
@@ -95,14 +114,32 @@ export default class SlashCommandHandler {
         }, 5000);
     }
 
+    /**
+     * Reload all the slash commands in the slashCommands directory.
+     */
+    public reloadSlashCommands() {
+        this.client.slashCommands.clear();
+        this.loadSlashCommands();
+    }
+
+    /**
+     * Fetch the slash command that has the provided name.
+     * @param name The name to search for.
+     * @return The slash command we've found.
+     * @private
+     */
     private fetchCommand(name: string): SlashCommand | undefined {
         return this.client.slashCommands.get(name);
     }
 
+    /**
+     * Handle the interaction created for this slash command to make sure the user and client can execute it.
+     * @param interaction The interaction created.
+     */
     public async handleCommand(interaction: CommandInteraction) {
         const command = this.fetchCommand(interaction.commandName);
         if (!command) {
-            this.client.logger.debug(
+            this.client.logger.error(
                 `${interaction.user.tag} [${interaction.user.id}] invoked slash command ${interaction.commandName} even though it doesn't exist.`
             );
             const sentryId =
@@ -110,8 +147,7 @@ export default class SlashCommandHandler {
                     new Error(`Non existent command invoked`),
                     interaction
                 );
-
-            this.client.guilds.cache.forEach(async guild => {
+            this.client.guilds.cache.map(async guild => {
                 try {
                     await guild.commands.delete(interaction.commandName);
                 } catch (error: any) {
@@ -153,8 +189,17 @@ export default class SlashCommandHandler {
         }
 
         if (
-            process.env.NODE_ENV === "development" &&
-            !this.client.config.admins.includes(interaction.user.id)
+            !command ||
+            (process.env.NODE_ENV === "development" &&
+                !this.client.config.admins.includes(interaction.user.id)) ||
+            !(
+                this.client.application?.owner instanceof User &&
+                this.client.application.owner.id === interaction.user.id
+            ) ||
+            !(
+                this.client.application?.owner instanceof Team &&
+                this.client.application?.owner.members.has(interaction.user.id)
+            )
         )
             return;
 
@@ -167,6 +212,12 @@ export default class SlashCommandHandler {
         return this.runCommand(command, interaction);
     }
 
+    /**
+     * Execute our slash command.`
+     * @param command The slash command we want to execute.
+     * @param interaction The interaction that was created for our slash command.
+     * @private
+     */
     private async runCommand(
         command: SlashCommand,
         interaction: CommandInteraction
@@ -183,7 +234,9 @@ export default class SlashCommandHandler {
         this.client.usersUsingBot.add(interaction.user.id);
         command
             .run(interaction)
-            .then(() => {
+            .then(async () => {
+                if (command.cooldown)
+                    await command.applyCooldown(interaction.user.id);
                 this.client.usersUsingBot.delete(interaction.user.id);
                 this.client.dataDog.increment("slashCommandUsage", 1, [
                     `command:${command.name}`

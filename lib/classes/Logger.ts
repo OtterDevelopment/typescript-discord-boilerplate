@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import {
     bgGreenBright,
     bgMagentaBright,
@@ -11,61 +12,90 @@ import { WebhookClient, WebhookMessageOptions } from "discord.js";
 import init from "../utilities/sentry.js";
 
 export class Logger {
+    /**
+     * Our Sentry logger.
+     */
     public readonly sentry;
 
-    private webhooks: Record<string, WebhookClient>;
+    /**
+     * The list of webhooks our Logger can use.
+     * @private
+     */
+    private readonly webhooks: Record<string, WebhookClient>;
 
     constructor() {
         this.sentry = init();
         this.webhooks = {};
     }
 
-    private get timestamp(): string {
+    /**
+     * Get the current timestamp.
+     * @returns The current timestamp in the format of [DD/MM/YYYY @ HH:mm:SS].
+     * @private
+     */
+    private static get timestamp(): string {
         const now = new Date();
         const [year, month, day] = now.toISOString().substr(0, 10).split("-");
         return `${day}/${month}/${year} @ ${now.toISOString().substr(11, 8)}`;
     }
 
-    public debug(...args: string | any) {
-        process.stdout.write(
-            (bold(bgMagentaBright(`[${this.timestamp}]`)),
-            bold(format(...args)),
-            "\n")
+    /**
+     * Log out a debug statement.
+     * @param args The arguments to log out.
+     */
+    public debug(...args: string | any): void {
+        console.log(
+            bold(bgMagentaBright(`[${Logger.timestamp}]`)),
+            bold(format(...args))
         );
     }
 
-    public info(...args: string | any) {
-        process.stdout.write(
-            (bold(bgGreenBright(blackBright(`[${this.timestamp}]`))),
-            bold(format(...args)),
-            "\n")
+    /**
+     * Log out a debug statement.
+     * @param args The arguments to log out.
+     */
+    public info(...args: string | any): void {
+        console.log(
+            bold(bgGreenBright(blackBright(`[${Logger.timestamp}]`))),
+            bold(format(...args))
         );
     }
 
-    public warn(...args: string | any) {
-        process.stdout.write(
-            (bold(bgYellowBright(blackBright(`[${this.timestamp}]`))),
-            bold(format(...args)),
-            "\n")
+    /**
+     * Log out a debug statement.
+     * @param args The arguments to log out.
+     */
+    public warn(...args: string | any): void {
+        console.log(
+            bold(bgYellowBright(blackBright(`[${Logger.timestamp}]`))),
+            bold(format(...args))
         );
     }
 
-    public error(error: any | null, ...args: string | any) {
+    /**
+     * Log out an error statement.
+     * @param error The error to log out.
+     * @param args THe arguments to log out.
+     */
+    public error(error: any | null, ...args: string | any): void {
         if (error)
-            process.stdout.write(
-                (bold(bgRedBright(`[${this.timestamp}]`)),
+            console.log(
+                bold(bgRedBright(`[${Logger.timestamp}]`)),
                 error,
-                bold(format(...args)),
-                "\n")
+                bold(format(...args))
             );
         else
-            process.stdout.write(
-                (bold(bgRedBright(`[${this.timestamp}]`)),
-                bold(format(...args)),
-                "\n")
+            console.log(
+                bold(bgRedBright(`[${Logger.timestamp}]`)),
+                bold(format(...args))
             );
     }
 
+    /**
+     * Log a message to Discord through a webhook.
+     * @param type The type to log out, make sure that the webhook is provided in your .env file in the format as ${TYPE}_HOOK=...
+     * @param options The options for the webhook you want to send.
+     */
     public async webhookLog(type: string, options: WebhookMessageOptions) {
         if (!type) throw new Error("No webhook type provided!");
         else if (!this.webhooks[type.toLowerCase()]) {

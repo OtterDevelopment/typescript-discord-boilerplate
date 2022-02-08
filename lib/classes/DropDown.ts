@@ -3,20 +3,53 @@ import { ButtonOptions } from "../../typings";
 import BetterClient from "../extensions/BetterClient.js";
 
 export default class DropDown {
+    /**
+     * The beginning of the customId the dropdown listens for.
+     */
     public readonly name: string;
 
+    /**
+     * The permissions a user would require to execute this dropdown.
+     * @private
+     */
     private readonly permissions: PermissionString[];
 
+    /**
+     * The permissions the client requires to execute this dropdown.
+     * @private
+     */
     private readonly clientPermissions: PermissionString[];
 
+    /**
+     * Whether this dropdown is only for developers.
+     * @private
+     */
     private readonly devOnly: boolean;
 
+    /**
+     * Whether this dropdown is only to be used in guilds.
+     * @private
+     */
     private readonly guildOnly: boolean;
 
+    /**
+     * Whether this button is only to be used by guild owners.
+     * @private
+     */
     private readonly ownerOnly: boolean;
 
+    /**
+     * Our client.
+     * @private
+     */
     private readonly client: BetterClient;
 
+    /**
+     * Create our dropdown.
+     * @param name The beginning of the customId this dropdown listens for.
+     * @param client Our client.
+     * @param options The options for our button.
+     */
     constructor(name: string, client: BetterClient, options: ButtonOptions) {
         this.name = name;
 
@@ -32,6 +65,11 @@ export default class DropDown {
         this.client = client;
     }
 
+    /**
+     * Validate this interaction to make sure this dropdown can be executed.
+     * @param interaction The interaction that was created.
+     * @returns The error or null if the command is valid.
+     */
     public validate(interaction: SelectMenuInteraction) {
         if (this.guildOnly && !interaction.inGuild())
             return "This drop down can only be used in guilds!";
@@ -77,6 +115,10 @@ export default class DropDown {
         return null;
     }
 
+    /**
+     * Run this dropdown.
+     * @param _interaction The interaction that was created.
+     */
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public async run(interaction: SelectMenuInteraction): Promise<any> {}
+    public async run(_interaction: SelectMenuInteraction): Promise<any> {}
 }

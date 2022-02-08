@@ -1,15 +1,31 @@
-import { Snowflake } from "discord.js";
+import { Snowflake, Team, User } from "discord.js";
 import TextCommand from "./TextCommand.js";
 import BetterClient from "../extensions/BetterClient.js";
 import BetterMessage from "../extensions/BetterMessage.js";
 
 export default class TextCommandHandler {
+    /**
+     * Our client.
+     * @private
+     */
     private readonly client: BetterClient;
 
+    /**
+     * How long a user must wait between each text command.
+     * @private
+     */
     private readonly coolDownTime: number;
 
+    /**
+     * Our user's cooldowns.
+     * @private
+     */
     private coolDowns: Set<Snowflake>;
 
+    /**
+     * Create our TextCommandHandler.
+     * @param client
+     */
     constructor(client: BetterClient) {
         this.client = client;
 
@@ -17,7 +33,10 @@ export default class TextCommandHandler {
         this.coolDowns = new Set();
     }
 
-    public loadCommands() {
+    /**
+     * Load all of the text commands in the textCommands directory.
+     */
+    public loadTextCommands() {
         this.client.functions
             .getFiles(
                 `${this.client.__dirname}/dist/src/bot/textCommands`,
@@ -31,25 +50,50 @@ export default class TextCommandHandler {
                         ".js"
                     )
                     .forEach(async fileName => {
-                        const commandFile = await import(
-                            `../../src/bot/textCommands/${parentFolder}/${fileName}`
-                        );
-                        // eslint-disable-next-line new-cap
-                        const command: TextCommand = new commandFile.default(
-                            this.client
-                        );
-                        return this.client.textCommands.set(
-                            command.name,
-                            command
-                        );
+                        try {
+                            const commandFile = await import(
+                                `../../src/bot/textCommands/${parentFolder}/${fileName}`
+                            );
+                            // eslint-disable-next-line new-cap
+                            const command: TextCommand =
+                                // eslint-disable-next-line new-cap
+                                new commandFile.default(this.client);
+                            return this.client.textCommands.set(
+                                command.name,
+                                command
+                            );
+                        } catch (error) {
+                            this.client.logger.error(
+                                `Error loading text command ${fileName}: ${error}`
+                            );
+                        }
+                        return null;
                     })
             );
     }
 
+    /**
+     * Reload all the text commands in the textCommands directory.
+     */
+    public reloadTextCommands() {
+        this.client.textCommands.clear();
+        this.loadTextCommands();
+    }
+
+    /**
+     * Fetch the text command that has the provided name.
+     * @param name The name to search for.
+     * @private The text command we've found.
+     * @private
+     */
     private fetchCommand(name: string): TextCommand | undefined {
         return this.client.textCommands.get(name);
     }
 
+    /**
+     * Handle the message created for this text command to make sure the user and client can execute it.
+     * @param message The message created.
+     */
     public async handleCommand(message: BetterMessage) {
         if (!message.content.startsWith(this.client.config.prefix)) return;
         const args = message.content
@@ -61,7 +105,11 @@ export default class TextCommandHandler {
         if (
             !command ||
             (process.env.NODE_ENV === "development" &&
-                !this.client.config.admins.includes(message.author.id))
+                !this.client.config.admins.includes(message.author.id)) ||
+            (this.client.application?.owner instanceof User &&
+                this.client.application.owner.id !== message.author.id) ||
+            (this.client.application?.owner instanceof Team &&
+                !this.client.application?.owner.members.has(message.author.id))
         )
             return;
 
@@ -71,9 +119,24 @@ export default class TextCommandHandler {
                 this.client.functions.generateErrorMessage(missingPermissions)
             );
 
+        const preChecked = await command.preCheck(message);
+        if (!preChecked[0]) {
+            if (preChecked[1])
+                return message.reply({ embeds: [preChecked[1]] });
+            return;
+        }
+
         return this.runCommand(command, message, args);
     }
 
+    /**
+     * Execute our text command.
+     * @param command The text command we want to execute.
+     * @param message The message that was created for our text command.
+     * @param args The arguments for our text command.
+     * @private
+     */
+    // @ts-ignore
     private async runCommand(
         command: TextCommand,
         message: BetterMessage,

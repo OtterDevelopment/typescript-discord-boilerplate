@@ -3,12 +3,28 @@ import DropDown from "./DropDown.js";
 import BetterClient from "../extensions/BetterClient.js";
 
 export default class DropdownHandler {
+    /**
+     * Our client.
+     * @private
+     */
     private readonly client: BetterClient;
 
+    /**
+     * How long a user must wait between each dropdown.
+     * @private
+     */
     private readonly coolDownTime: number;
 
+    /**
+     * Our user's cooldowns.
+     * @private
+     */
     private readonly coolDowns: Set<string>;
 
+    /**
+     * Create our DropDownHandler.
+     * @param client Our client.
+     */
     constructor(client: BetterClient) {
         this.client = client;
 
@@ -16,6 +32,9 @@ export default class DropdownHandler {
         this.coolDowns = new Set();
     }
 
+    /**
+     * Load all the dropdowns in the dropdowns directory.
+     */
     public loadDropDowns(): void {
         this.client.functions
             .getFiles(
@@ -45,12 +64,30 @@ export default class DropdownHandler {
             );
     }
 
+    /**
+     * Reload all the buttons in the dropdowns directory.
+     */
+    public reloadDropDowns() {
+        this.client.dropDowns.clear();
+        this.loadDropDowns();
+    }
+
+    /**
+     * Fetch the dropdown that starts with the provided customId.
+     * @param customId The customId to search for.
+     * @returns The button we've found.
+     * @private
+     */
     private fetchDropDown(customId: string): DropDown | undefined {
         return this.client.dropDowns.find(dropDown =>
             customId.startsWith(dropDown.name)
         );
     }
 
+    /**
+     * Handle the interaction created for this dropdown to make sure the user and client can execute it.
+     * @param interaction The interaction created.
+     */
     public async handleDropDown(interaction: SelectMenuInteraction) {
         const dropDown = this.fetchDropDown(interaction.message!.id);
         if (
@@ -69,9 +106,15 @@ export default class DropdownHandler {
                 })
             );
 
-        return dropDown.run(interaction);
+        return this.runDropDown(dropDown, interaction);
     }
 
+    /**
+     * Execute our dropdown.
+     * @param dropdown The dropdown we want to execute.
+     * @param interaction The interaction for our dropdown.
+     * @private
+     */
     private async runDropDown(
         dropdown: DropDown,
         interaction: SelectMenuInteraction
