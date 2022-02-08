@@ -172,7 +172,7 @@ export default class BetterClient extends Client {
             this.dataDog.init({
                 flushIntervalSeconds: 0,
                 apiKey: this.config.dataDog.apiKey,
-                prefix: "positivePeter.",
+                prefix: `${this.config.botName}.`,
                 defaultTags: [`env:${process.env.NODE_ENV}`]
             });
             setInterval(() => {
