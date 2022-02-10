@@ -1,4 +1,8 @@
-import { PermissionString, SelectMenuInteraction } from "discord.js";
+import {
+    MessageEmbedOptions,
+    PermissionString,
+    SelectMenuInteraction
+} from "discord.js";
 import { ButtonOptions } from "../../typings";
 import BetterClient from "../extensions/BetterClient.js";
 
@@ -113,6 +117,16 @@ export default class DropDown {
                 this.permissions.length > 1 ? "s" : ""
             } to run this drop down.`;
         return null;
+    }
+
+    /**
+     * This function must be evaluated to true or else this slash command will not be executed.
+     * @param _interaction The interaction that was created.
+     */
+    public async preCheck(
+        _interaction: SelectMenuInteraction
+    ): Promise<[boolean, MessageEmbedOptions?]> {
+        return [true];
     }
 
     /**

@@ -121,8 +121,7 @@ export default class TextCommandHandler {
 
         const preChecked = await command.preCheck(message);
         if (!preChecked[0]) {
-            if (preChecked[1])
-                return message.reply({ embeds: [preChecked[1]] });
+            if (preChecked[1]) await message.reply({ embeds: [preChecked[1]] });
             return;
         }
 

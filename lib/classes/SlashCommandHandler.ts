@@ -192,14 +192,12 @@ export default class SlashCommandHandler {
             !command ||
             (process.env.NODE_ENV === "development" &&
                 !this.client.config.admins.includes(interaction.user.id)) ||
-            !(
-                this.client.application?.owner instanceof User &&
-                this.client.application.owner.id === interaction.user.id
-            ) ||
-            !(
-                this.client.application?.owner instanceof Team &&
-                this.client.application?.owner.members.has(interaction.user.id)
-            )
+            (this.client.application?.owner instanceof User &&
+                this.client.application.owner.id !== interaction.user.id) ||
+            (this.client.application?.owner instanceof Team &&
+                !this.client.application?.owner.members.has(
+                    interaction.user.id
+                ))
         )
             return;
 
@@ -208,6 +206,13 @@ export default class SlashCommandHandler {
             return interaction.reply(
                 this.client.functions.generateErrorMessage(missingPermissions)
             );
+
+        const preChecked = await command.preCheck(interaction);
+        if (!preChecked[0]) {
+            if (preChecked[1])
+                await interaction.reply({ embeds: [preChecked[1]] });
+            return;
+        }
 
         return this.runCommand(command, interaction);
     }

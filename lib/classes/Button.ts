@@ -1,4 +1,8 @@
-import { ButtonInteraction, PermissionString } from "discord.js";
+import {
+    ButtonInteraction,
+    MessageEmbedOptions,
+    PermissionString
+} from "discord.js";
 import { ButtonOptions } from "../../typings";
 import BetterClient from "../extensions/BetterClient.js";
 
@@ -113,6 +117,16 @@ export default class Button {
                 this.permissions.length > 1 ? "s" : ""
             } to run this button.`;
         return null;
+    }
+
+    /**
+     * This function must be evaluated to true or else this slash command will not be executed.
+     * @param _interaction The interaction that was created.
+     */
+    public async preCheck(
+        _interaction: ButtonInteraction
+    ): Promise<[boolean, MessageEmbedOptions?]> {
+        return [true];
     }
 
     /**

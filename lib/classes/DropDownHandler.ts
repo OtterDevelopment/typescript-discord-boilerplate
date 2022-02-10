@@ -1,4 +1,4 @@
-import { SelectMenuInteraction } from "discord.js";
+import { SelectMenuInteraction, Team, User } from "discord.js";
 import DropDown from "./DropDown.js";
 import BetterClient from "../extensions/BetterClient.js";
 
@@ -93,7 +93,13 @@ export default class DropdownHandler {
         if (
             !dropDown ||
             (process.env.NODE_ENV === "development" &&
-                !this.client.config.admins.includes(interaction.user.id))
+                !this.client.config.admins.includes(interaction.user.id)) ||
+            (this.client.application?.owner instanceof User &&
+                this.client.application.owner.id !== interaction.user.id) ||
+            (this.client.application?.owner instanceof Team &&
+                !this.client.application?.owner.members.has(
+                    interaction.user.id
+                ))
         )
             return;
 
@@ -105,6 +111,13 @@ export default class DropdownHandler {
                     description: missingPermissions
                 })
             );
+
+        const preChecked = await dropDown.preCheck(interaction);
+        if (!preChecked[0]) {
+            if (preChecked[1])
+                await interaction.reply({ embeds: [preChecked[1]] });
+            return;
+        }
 
         return this.runDropDown(dropDown, interaction);
     }

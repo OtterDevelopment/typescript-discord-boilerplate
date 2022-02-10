@@ -1,6 +1,6 @@
 /* eslint-disable import/order */
 import Button from "./Button.js";
-import { ButtonInteraction } from "discord.js";
+import { ButtonInteraction, Team, User } from "discord.js";
 import BetterClient from "../extensions/BetterClient.js";
 
 export default class ButtonHandler {
@@ -87,7 +87,13 @@ export default class ButtonHandler {
         if (
             !button ||
             (process.env.NODE_ENV === "development" &&
-                !this.client.config.admins.includes(interaction.user.id))
+                !this.client.config.admins.includes(interaction.user.id)) ||
+            (this.client.application?.owner instanceof User &&
+                this.client.application.owner.id !== interaction.user.id) ||
+            (this.client.application?.owner instanceof Team &&
+                !this.client.application?.owner.members.has(
+                    interaction.user.id
+                ))
         )
             return;
 
@@ -99,6 +105,13 @@ export default class ButtonHandler {
                     description: missingPermissions
                 })
             );
+
+        const preChecked = await button.preCheck(interaction);
+        if (!preChecked[0]) {
+            if (preChecked[1])
+                await interaction.reply({ embeds: [preChecked[1]] });
+            return;
+        }
 
         return this.runButton(button, interaction);
     }
