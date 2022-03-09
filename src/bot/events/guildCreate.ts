@@ -3,7 +3,6 @@ import EventHandler from "../../../lib/classes/EventHandler.js";
 
 export default class GuildCreate extends EventHandler {
     override async run(guild: Guild) {
-        this.client.dataDog.increment("events", 1, ["event:guildCreate"]);
         const stats = await this.client.fetchStats();
         this.client.dataDog.gauge("guilds", stats.guilds);
         this.client.dataDog.gauge("users", stats.users);

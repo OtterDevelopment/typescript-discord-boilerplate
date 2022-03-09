@@ -6,7 +6,6 @@ export default class InteractionCreate extends EventHandler {
         this.client.logger.info(
             `${interaction.type} interaction created: ${interaction.toString()}`
         );
-        this.client.dataDog.increment("events", 1, ["event:interactionCreate"]);
         // @ts-ignore
         if (this.client.mongo.topology.s.state !== "connected")
             // @ts-ignore
