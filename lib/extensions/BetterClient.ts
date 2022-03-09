@@ -15,6 +15,8 @@ import ButtonHandler from "../classes/ButtonHandler.js";
 import DropDownHandler from "../classes/DropDownHandler.js";
 import TextCommandHandler from "../classes/TextCommandHandler.js";
 import SlashCommandHandler from "../classes/SlashCommandHandler.js";
+import AutoCompleteHandler from "../classes/AutoCompleteHandler.js";
+import AutoComplete from "../classes/AutoComplete.js";
 
 export default class BetterClient extends Client {
     /**
@@ -78,6 +80,16 @@ export default class BetterClient extends Client {
     public dropDowns: Collection<string, DropDown>;
 
     /**
+     * The autoCompleteHandler for our client.
+     */
+    public readonly autoCompleteHandler: AutoCompleteHandler;
+
+    /**
+     * The autoCompletes for our client.
+     */
+    public autoCompletes: Collection<string, AutoComplete>;
+
+    /**
      * The events for our client.
      */
     public events: Map<string, EventHandler>;
@@ -138,6 +150,9 @@ export default class BetterClient extends Client {
         this.dropDownHandler = new DropDownHandler(this);
         this.dropDowns = new Collection();
 
+        this.autoCompleteHandler = new AutoCompleteHandler(this);
+        this.autoCompletes = new Collection();
+
         this.events = new Map();
 
         this.mongo = new MongoClient(process.env.MONGO_URI);
@@ -164,6 +179,7 @@ export default class BetterClient extends Client {
         this.buttonHandler.loadButtons();
         this.slashCommandHandler.loadSlashCommands();
         this.textCommandHandler.loadTextCommands();
+        this.autoCompleteHandler.loadAutoCompletes();
         this.loadEvents();
 
         // @ts-ignore
