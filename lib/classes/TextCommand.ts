@@ -123,12 +123,11 @@ export default class TextCommand {
             };
         else if (
             this.devOnly &&
-            !this.client.config.admins.includes(message.author.id)
+            !this.client.functions.isDeveloper(message.author.id)
         )
             return {
                 title: "Missing Permissions",
-                description:
-                    "This command can only be used by the bot developer."
+                description: "This command can only be used by my developers."
             };
         else if (
             this.permissions.length > 0 &&
