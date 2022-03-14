@@ -11,7 +11,6 @@ export default class AutoComplete {
      * Our client.
      * @private
      */
-    // @ts-ignore
     public readonly client: BetterClient;
 
     /**
