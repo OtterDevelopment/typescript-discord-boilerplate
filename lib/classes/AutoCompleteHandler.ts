@@ -71,10 +71,13 @@ export default class AutoCompleteHandler {
      * @param interaction The interaction created.
      */
     public async handleAutoComplete(interaction: AutocompleteInteraction) {
-        const { name } = interaction.options.getFocused(true);
-        const autoComplete = this.fetchAutoComplete(
-            `${interaction.commandName}-${name}`
-        );
+        const name = [
+            interaction.commandName,
+            interaction.options.getSubcommandGroup(false) || "",
+            interaction.options.getSubcommand(false) || "",
+            interaction.options.getFocused(true).name || ""
+        ].join("-");
+        const autoComplete = this.fetchAutoComplete(name);
         if (!autoComplete) return;
 
         return this.runAutoComplete(autoComplete, interaction);
@@ -89,14 +92,21 @@ export default class AutoCompleteHandler {
         autoComplete: AutoComplete,
         interaction: AutocompleteInteraction
     ) {
-        autoComplete.run(interaction).catch(async (error): Promise<any> => {
-            this.client.logger.error(error);
-            await this.client.logger.sentry.captureWithInteraction(
-                error,
-                interaction
-            );
+        autoComplete
+            .run(interaction)
+            .then(() =>
+                this.client.dataDog.increment("autoCompletes", 1, [
+                    `completion:${autoComplete.name}`
+                ])
+            )
+            .catch(async (error): Promise<any> => {
+                this.client.logger.error(error);
+                await this.client.logger.sentry.captureWithInteraction(
+                    error,
+                    interaction
+                );
 
-            if (!interaction.responded) return interaction.respond([]);
-        });
+                if (!interaction.responded) return interaction.respond([]);
+            });
     }
 }
