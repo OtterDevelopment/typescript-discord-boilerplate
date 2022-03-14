@@ -133,6 +133,5 @@ export default class DropDown {
      * Run this dropdown.
      * @param _interaction The interaction that was created.
      */
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public async run(_interaction: SelectMenuInteraction): Promise<any> {}
 }

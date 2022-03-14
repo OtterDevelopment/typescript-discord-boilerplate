@@ -28,6 +28,5 @@ export default class AutoComplete {
      * Run the autocomplete.
      * @param _interaction The interaction that was created.
      */
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public async run(_interaction: AutocompleteInteraction): Promise<void> {}
 }

@@ -210,6 +210,5 @@ export default class TextCommand {
      * @param _message The message that was created.
      * @param _args
      */
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public async run(_message: BetterMessage, _args: string[]): Promise<any> {}
 }

@@ -50,7 +50,6 @@ export default class EventHandler {
      * Execute our event.
      * @param _args The arguments for our event.
      */
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public async run(..._args: any): Promise<any> {}
 
     /**
