@@ -6,6 +6,8 @@ import {
     MessageEmbed,
     MessageEmbedOptions,
     PermissionString,
+    Snowflake,
+    Team,
     User
 } from "discord.js";
 import { existsSync, mkdirSync, readdirSync } from "fs";
@@ -284,5 +286,20 @@ export default class Functions {
      */
     public random(choices: any[]): any {
         return choices[Math.floor(Math.random() * choices.length)];
+    }
+
+    public async isDeveloper(snowflake: Snowflake) {
+        await this.client.application?.fetch();
+        return (
+            this.isAdmin(snowflake) &&
+            ((this.client.application?.owner instanceof User &&
+                this.client.application.owner.id === snowflake) ||
+                (this.client.application?.owner instanceof Team &&
+                    this.client.application.owner.members.has(snowflake)))
+        );
+    }
+
+    public isAdmin(snowflake: Snowflake) {
+        return this.client.config.admins.includes(snowflake);
     }
 }
