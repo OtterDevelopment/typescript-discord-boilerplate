@@ -14,37 +14,31 @@ export default class Button {
 
     /**
      * The permissions a user would require to execute this button.
-     * @private
      */
     private readonly permissions: PermissionString[];
 
     /**
      * The permissions the client requires to execute this button.
-     * @private
      */
     private readonly clientPermissions: PermissionString[];
 
     /**
      * Whether this button is only for developers.
-     * @private
      */
     private readonly devOnly: boolean;
 
     /**
      * Whether this button is only to be used in guilds.
-     * @private
      */
     private readonly guildOnly: boolean;
 
     /**
      * Whether this button is only to be used by guild owners.
-     * @private
      */
     private readonly ownerOnly: boolean;
 
     /**
      * Our client.
-     * @private
      */
     private readonly client: BetterClient;
 

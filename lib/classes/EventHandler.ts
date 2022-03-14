@@ -14,7 +14,6 @@ export default class EventHandler {
 
     /**
      * The listener for our event.
-     * @private
      */
     private readonly _listener;
 
@@ -32,7 +31,6 @@ export default class EventHandler {
     /**
      * Execute our event.
      * @param args The arguments for our event.
-     * @private
      */
     private async _run(...args: any) {
         try {

@@ -6,19 +6,16 @@ import BetterMessage from "../extensions/BetterMessage.js";
 export default class TextCommandHandler {
     /**
      * Our client.
-     * @private
      */
     private readonly client: BetterClient;
 
     /**
      * How long a user must wait between each text command.
-     * @private
      */
     private readonly coolDownTime: number;
 
     /**
      * Our user's cooldowns.
-     * @private
      */
     private coolDowns: Set<Snowflake>;
 
@@ -84,7 +81,6 @@ export default class TextCommandHandler {
      * Fetch the text command that has the provided name.
      * @param name The name to search for.
      * @private The text command we've found.
-     * @private
      */
     private fetchCommand(name: string): TextCommand | undefined {
         return this.client.textCommands.get(name);
@@ -133,7 +129,6 @@ export default class TextCommandHandler {
      * @param command The text command we want to execute.
      * @param message The message that was created for our text command.
      * @param args The arguments for our text command.
-     * @private
      */
     // @ts-ignore
     private async runCommand(

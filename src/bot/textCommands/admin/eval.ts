@@ -96,7 +96,6 @@ export default class Eval extends TextCommand {
      * Parse the content of a string to remove all private information.
      * @param content The content to parse.
      * @returns The parsed content.
-     * @private
      */
     private parseContent(content: string): string {
         return (

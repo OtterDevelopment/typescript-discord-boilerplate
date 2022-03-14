@@ -6,19 +6,16 @@ import BetterClient from "../extensions/BetterClient.js";
 export default class ButtonHandler {
     /**
      * Our client.
-     * @private
      */
     private readonly client: BetterClient;
 
     /**
      * How long a user must wait between each button.
-     * @private
      */
     private readonly coolDownTime: number;
 
     /**
      * Our user's cooldowns.
-     * @private
      */
     private readonly coolDowns: Set<string>;
 
@@ -70,7 +67,6 @@ export default class ButtonHandler {
      * Fetch the button that starts with the provided customId.
      * @param customId The customId to search for.
      * @returns The button we've found.
-     * @private
      */
     private fetchButton(customId: string): Button | undefined {
         return this.client.buttons.find(button =>
@@ -120,7 +116,6 @@ export default class ButtonHandler {
      * Execute our button.
      * @param button The button we want to execute.
      * @param interaction The interaction for our button.
-     * @private
      */
     private async runButton(button: Button, interaction: ButtonInteraction) {
         if (this.coolDowns.has(interaction.user.id))

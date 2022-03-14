@@ -9,7 +9,6 @@ export default class AutoComplete {
 
     /**
      * Our client.
-     * @private
      */
     public readonly client: BetterClient;
 

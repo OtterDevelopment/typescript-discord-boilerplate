@@ -5,19 +5,16 @@ import BetterClient from "../extensions/BetterClient.js";
 export default class SlashCommandHandler {
     /**
      * Our client.
-     * @private
      */
     private readonly client: BetterClient;
 
     /**
      * How long a user must wait between each slash command.
-     * @private
      */
     private readonly coolDownTime: number;
 
     /**
      * Our user's cooldowns.
-     * @private
      */
     private coolDowns: Set<Snowflake>;
 
@@ -126,7 +123,6 @@ export default class SlashCommandHandler {
      * Fetch the slash command that has the provided name.
      * @param name The name to search for.
      * @return The slash command we've found.
-     * @private
      */
     private fetchCommand(name: string): SlashCommand | undefined {
         return this.client.slashCommands.get(name);
@@ -221,7 +217,6 @@ export default class SlashCommandHandler {
      * Execute our slash command.`
      * @param command The slash command we want to execute.
      * @param interaction The interaction that was created for our slash command.
-     * @private
      */
     private async runCommand(
         command: SlashCommand,

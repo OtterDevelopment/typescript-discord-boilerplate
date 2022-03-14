@@ -27,31 +27,26 @@ export default class SlashCommand {
 
     /**
      * The permissions a user would require to execute this slash command.
-     * @private
      */
     private readonly permissions: PermissionString[];
 
     /**
      * The permissions the client requires to execute this slash command.
-     * @private
      */
     private readonly clientPermissions: PermissionString[];
 
     /**
      * Whether this slash command is only for developers.
-     * @private
      */
     private readonly devOnly: boolean;
 
     /**
      * Whether this slash command is only to be used in guilds.
-     * @private
      */
     private readonly guildOnly: boolean;
 
     /**
      * Whether this slash command is only to be used by guild owners.
-     * @private
      */
     private readonly ownerOnly: boolean;
 

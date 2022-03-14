@@ -17,7 +17,6 @@ import { GeneratedMessage, GenerateTimestampOptions } from "../../typings";
 export default class Functions {
     /**
      * Our Client.
-     * @private
      */
     private client: BetterClient;
 

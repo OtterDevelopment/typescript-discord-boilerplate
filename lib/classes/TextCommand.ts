@@ -27,25 +27,21 @@ export default class TextCommand {
 
     /**
      * The permissions the client requires to execute this text command.
-     * @private
      */
     private readonly clientPermissions: PermissionString[];
 
     /**
      * Whether this text command is only for developers.
-     * @private
      */
     private readonly devOnly: boolean;
 
     /**
      * Whether this text command is only to be used in guilds.
-     * @private
      */
     private readonly guildOnly: boolean;
 
     /**
      * Whether this slash command is only to be used by guild owners.
-     * @private
      */
     private readonly ownerOnly: boolean;
 

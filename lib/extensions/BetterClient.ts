@@ -217,7 +217,6 @@ export default class BetterClient extends Client {
 
     /**
      * Load all the events in the events directory.
-     * @private
      */
     private loadEvents() {
         return this.functions
@@ -238,7 +237,6 @@ export default class BetterClient extends Client {
 
     /**
      * Reload all the events in the events directory.
-     * @private
      */
     public reloadEvents() {
         this.events.forEach(event => event.removeListener());

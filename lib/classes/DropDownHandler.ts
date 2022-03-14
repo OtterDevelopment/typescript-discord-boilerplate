@@ -5,19 +5,16 @@ import BetterClient from "../extensions/BetterClient.js";
 export default class DropdownHandler {
     /**
      * Our client.
-     * @private
      */
     private readonly client: BetterClient;
 
     /**
      * How long a user must wait between each dropdown.
-     * @private
      */
     private readonly coolDownTime: number;
 
     /**
      * Our user's cooldowns.
-     * @private
      */
     private readonly coolDowns: Set<string>;
 
@@ -76,7 +73,6 @@ export default class DropdownHandler {
      * Fetch the dropdown that starts with the provided customId.
      * @param customId The customId to search for.
      * @returns The button we've found.
-     * @private
      */
     private fetchDropDown(customId: string): DropDown | undefined {
         return this.client.dropDowns.find(dropDown =>
@@ -126,7 +122,6 @@ export default class DropdownHandler {
      * Execute our dropdown.
      * @param dropdown The dropdown we want to execute.
      * @param interaction The interaction for our dropdown.
-     * @private
      */
     private async runDropDown(
         dropdown: DropDown,

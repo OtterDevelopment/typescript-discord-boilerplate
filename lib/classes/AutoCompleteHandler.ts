@@ -5,7 +5,6 @@ import AutoComplete from "./AutoComplete.js";
 export default class AutoCompleteHandler {
     /**
      * Our client.
-     * @private
      */
     private readonly client: BetterClient;
 
@@ -60,7 +59,6 @@ export default class AutoCompleteHandler {
      * Fetch the autoComplete with the provided name.
      * @param name The name to search for.
      * @returns The autoComplete we've found.
-     * @private
      */
     private fetchAutoComplete(name: string): AutoComplete | undefined {
         return this.client.autoCompletes.find(
@@ -86,7 +84,6 @@ export default class AutoCompleteHandler {
      * Execute our autoComplete.
      * @param autoComplete The autoComplete we want to execute.
      * @param interaction The interaction for our autoComplete.
-     * @private
      */
     private async runAutoComplete(
         autoComplete: AutoComplete,

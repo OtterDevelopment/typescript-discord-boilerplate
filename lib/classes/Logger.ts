@@ -19,7 +19,6 @@ export class Logger {
 
     /**
      * The list of webhooks our Logger can use.
-     * @private
      */
     private readonly webhooks: Record<string, WebhookClient>;
 
@@ -31,7 +30,6 @@ export class Logger {
     /**
      * Get the current timestamp.
      * @returns The current timestamp in the format of [DD/MM/YYYY @ HH:mm:SS].
-     * @private
      */
     private static get timestamp(): string {
         const now = new Date();
