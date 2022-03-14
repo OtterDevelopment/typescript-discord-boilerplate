@@ -130,14 +130,12 @@ export default class TextCommand {
                 description: "This command can only be used by my developers."
             };
         else if (
-            this.permissions.length > 0 &&
+            this.permissions.length &&
             !message.member?.permissions.has(this.permissions)
         )
             return {
                 title: "Missing Permissions",
-                description: `You need ${
-                    this.permissions.length > 1 ? "" : "the"
-                } ${this.permissions
+                description: `You need the ${this.permissions
                     .map(
                         permission =>
                             `**${this.client.functions.getPermissionName(
@@ -149,14 +147,12 @@ export default class TextCommand {
                 } to run this command.`
             };
         else if (
-            this.clientPermissions.length > 0 &&
+            this.clientPermissions.length &&
             !message.guild?.me?.permissions.has(this.clientPermissions)
         )
             return {
                 title: "Missing Permissions",
-                description: `You need ${
-                    this.permissions.length > 1 ? "" : "the"
-                } ${this.permissions
+                description: `I need the ${this.clientPermissions
                     .map(
                         permission =>
                             `**${this.client.functions.getPermissionName(
@@ -164,7 +160,7 @@ export default class TextCommand {
                             )}**`
                     )
                     .join(", ")} permission${
-                    this.permissions.length > 1 ? "s" : ""
+                    this.clientPermissions.length > 1 ? "s" : ""
                 } to run this command.`
             };
         else if (this.cooldown) {
