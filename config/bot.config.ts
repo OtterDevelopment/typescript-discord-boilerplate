@@ -5,8 +5,10 @@ export default {
     botName: "",
 
     version: "1.0.0",
-    admins: ["619284841187246090"],
+    admins: [""],
 
+    // If your bot isn't public, or open source, or doesn't have a
+    // Support server, feel free to remove the following variables.
     supportServer: "",
     minimalInvite: "",
     gitHub: "",
@@ -23,6 +25,8 @@ export default {
 
     hastebin: "https://h.inv.wtf",
 
+    // To replace these colors please make sure you are providing a
+    // hexadecimal color.
     colors: {
         primary: "5865F2",
         success: "57F287",
@@ -30,12 +34,14 @@ export default {
         error: "ED4245"
     },
 
-    intents: [
-        Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGES,
-        Intents.FLAGS.DIRECT_MESSAGES
-    ],
+    // Properly update the following intents list for the bot to
+    // Function properly, it currently only listens for guilds
+    // And interactions.
+    intents: [Intents.FLAGS.GUILDS],
 
+    // If your bot requires any permissions other than the ones below
+    // Add them and all commands and interactions will only work if
+    // The bot has said permissions in the environment they're run in.
     requiredPermissions: [
         "EMBED_LINKS",
         "SEND_MESSAGES",
