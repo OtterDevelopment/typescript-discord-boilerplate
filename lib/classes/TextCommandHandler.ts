@@ -1,4 +1,4 @@
-import { Snowflake, Team, User } from "discord.js";
+import { Snowflake } from "discord.js";
 import TextCommand from "./TextCommand.js";
 import BetterClient from "../extensions/BetterClient.js";
 import BetterMessage from "../extensions/BetterMessage.js";
@@ -91,21 +91,22 @@ export default class TextCommandHandler {
      * @param message The message created.
      */
     public async handleCommand(message: BetterMessage) {
-        if (!message.content.startsWith(this.client.config.prefix)) return;
-        const args = message.content
-            .slice(this.client.config.prefix.length)
-            .trim()
-            .split(/ +/g);
+        if (
+            !this.client.config.prefixes.every(
+                prefix => !message.content.startsWith(prefix)
+            )
+        )
+            return;
+        const prefix = this.client.config.prefixes.find(p =>
+            message.content.startsWith(p)
+        )!;
+        const args = message.content.slice(prefix.length).trim().split(/ +/g);
         const commandName = args.shift()?.toLowerCase();
-        const command = this.fetchCommand(commandName!);
+        const command = this.fetchCommand(commandName || "");
         if (
             !command ||
             (process.env.NODE_ENV === "development" &&
-                !this.client.config.admins.includes(message.author.id)) ||
-            (this.client.application?.owner instanceof User &&
-                this.client.application.owner.id !== message.author.id) ||
-            (this.client.application?.owner instanceof Team &&
-                !this.client.application?.owner.members.has(message.author.id))
+                !this.client.functions.isAdmin(message.author.id))
         )
             return;
 
@@ -117,7 +118,10 @@ export default class TextCommandHandler {
 
         const preChecked = await command.preCheck(message);
         if (!preChecked[0]) {
-            if (preChecked[1]) await message.reply({ embeds: [preChecked[1]] });
+            if (preChecked[1])
+                await message.reply(
+                    this.client.functions.generateErrorMessage(preChecked[1])
+                );
             return;
         }
 

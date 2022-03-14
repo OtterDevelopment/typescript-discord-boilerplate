@@ -1,7 +1,7 @@
 import { Intents, PermissionString, PresenceData } from "discord.js";
 
 export default {
-    prefix: process.env.NODE_ENV === "production" ? "!" : "!!",
+    prefixes: process.env.NODE_ENV === "production" ? ["!"] : ["!!"],
     botName: "",
 
     version: "1.0.0",
