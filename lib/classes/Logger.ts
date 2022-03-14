@@ -73,7 +73,7 @@ export class Logger {
     /**
      * Log out an error statement.
      * @param error The error to log out.
-     * @param args THe arguments to log out.
+     * @param args TBe arguments to log out.
      */
     public error(error: any | null, ...args: string | any): void {
         if (error)
