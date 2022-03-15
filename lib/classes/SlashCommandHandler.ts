@@ -1,4 +1,4 @@
-import { CommandInteraction, Snowflake, Team, User } from "discord.js";
+import { CommandInteraction, Snowflake } from "discord.js";
 import SlashCommand from "./SlashCommand";
 import BetterClient from "../extensions/BetterClient.js";
 
@@ -154,35 +154,47 @@ export default class SlashCommandHandler {
                     new Error(`Non existent slash command invoked`),
                     interaction
                 );
-            this.client.guilds.cache.map(async guild => {
-                try {
-                    await guild.commands.delete(interaction.commandName);
-                } catch (error: any) {
-                    if (error.code === 50001)
-                        this.client.logger.error(
-                            null,
-                            `I encountered DiscordAPIError: Missing Access in ${guild.name} [${guild.name}] when trying to remove non existent slash command ${interaction.commandName}!`
-                        );
-                    else {
-                        this.client.logger.error(error);
-                        this.client.logger.sentry.captureWithExtras(error, {
-                            Guild: guild.name,
-                            "Guild ID": guild.id,
-                            "Slash Command Count":
-                                this.client.slashCommands.size,
-                            "Slash Commands": this.client.slashCommands.map(
-                                cmd => {
-                                    return {
-                                        name: cmd.name,
-                                        description: cmd.description,
-                                        options: cmd.options
-                                    };
+            if (process.env.NODE_ENV === "production")
+                this.client.application?.commands.delete(
+                    interaction.commandName
+                );
+            else
+                await Promise.all(
+                    this.client.guilds.cache.map(guild =>
+                        guild.commands
+                            .delete(interaction.commandName)
+                            .catch(error => {
+                                if (error.code === 50001)
+                                    this.client.logger.error(
+                                        null,
+                                        `I encountered DiscordAPIError: Missing Access in ${guild.name} [${guild.id}] when trying to set slash commands!`
+                                    );
+                                else {
+                                    this.client.logger.error(error);
+                                    this.client.logger.sentry.captureWithExtras(
+                                        error,
+                                        {
+                                            Guild: guild.name,
+                                            "Guild ID": guild.id,
+                                            "Slash Command Count":
+                                                this.client.slashCommands.size,
+                                            "Slash Commands":
+                                                this.client.slashCommands.map(
+                                                    cmd => {
+                                                        return {
+                                                            name: cmd.name,
+                                                            description:
+                                                                cmd.description,
+                                                            options: cmd.options
+                                                        };
+                                                    }
+                                                )
+                                        }
+                                    );
                                 }
-                            )
-                        });
-                    }
-                }
-            });
+                            })
+                    )
+                );
             return interaction.reply(
                 this.client.functions.generateErrorMessage(
                     {
@@ -196,15 +208,8 @@ export default class SlashCommandHandler {
         }
 
         if (
-            !command ||
-            (process.env.NODE_ENV === "development" &&
-                !this.client.config.admins.includes(interaction.user.id)) ||
-            (this.client.application?.owner instanceof User &&
-                this.client.application.owner.id !== interaction.user.id) ||
-            (this.client.application?.owner instanceof Team &&
-                !this.client.application?.owner.members.has(
-                    interaction.user.id
-                ))
+            process.env.NODE_ENV === "development" &&
+            !this.client.functions.isDeveloper(interaction.user.id)
         )
             return;
 
@@ -217,7 +222,9 @@ export default class SlashCommandHandler {
         const preChecked = await command.preCheck(interaction);
         if (!preChecked[0]) {
             if (preChecked[1])
-                await interaction.reply({ embeds: [preChecked[1]] });
+                await interaction.reply(
+                    this.client.functions.generateErrorMessage(preChecked[1])
+                );
             return;
         }
 
