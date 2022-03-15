@@ -1,4 +1,3 @@
-import { MessageEmbedOptions, Team, User } from "discord.js";
 import { inspect } from "util";
 import TextCommand from "../../../../lib/classes/TextCommand.js";
 import BetterClient from "../../../../lib/extensions/BetterClient.js";

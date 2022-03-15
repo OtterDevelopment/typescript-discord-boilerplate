@@ -288,6 +288,11 @@ export default class Functions {
         return choices[Math.floor(Math.random() * choices.length)];
     }
 
+    /**
+     * Get whether a user is a developer or not.
+     * @param snowflake The user ID to check.
+     * @returns Whether the user is a developer or not.
+     */
     public async isDeveloper(snowflake: Snowflake) {
         await this.client.application?.fetch();
         return (
@@ -299,6 +304,11 @@ export default class Functions {
         );
     }
 
+    /**
+     * Get whether a user is an admin or not.
+     * @param snowflake The user ID to check.
+     * @returns Whether the user is an admin or not.
+     */
     public isAdmin(snowflake: Snowflake) {
         return this.client.config.admins.includes(snowflake);
     }
