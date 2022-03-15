@@ -92,8 +92,8 @@ export default class TextCommandHandler {
      */
     public async handleCommand(message: BetterMessage) {
         if (
-            !this.client.config.prefixes.every(
-                prefix => !message.content.startsWith(prefix)
+            !this.client.config.prefixes.every(prefix =>
+                message.content.startsWith(prefix)
             )
         )
             return;
