@@ -95,7 +95,7 @@ export default class AutoCompleteHandler {
         autoComplete
             .run(interaction)
             .then(() =>
-                this.client.dataDog.increment("autoCompletes", 1, [
+                this.client.dataDog.increment("autocompleteUsage", 1, [
                     `completion:${autoComplete.name}`
                 ])
             )
