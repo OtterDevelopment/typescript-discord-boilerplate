@@ -85,6 +85,7 @@ export default class DropdownHandler {
      * @param interaction The interaction created.
      */
     public async handleDropDown(interaction: SelectMenuInteraction) {
+        interaction.deferReply();
         const dropDown = this.fetchDropDown(interaction.message!.id);
         if (
             !dropDown ||
