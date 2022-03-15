@@ -89,29 +89,22 @@ export default class DropdownHandler {
         if (
             !dropDown ||
             (process.env.NODE_ENV === "development" &&
-                !this.client.config.admins.includes(interaction.user.id)) ||
-            (this.client.application?.owner instanceof User &&
-                this.client.application.owner.id !== interaction.user.id) ||
-            (this.client.application?.owner instanceof Team &&
-                !this.client.application?.owner.members.has(
-                    interaction.user.id
-                ))
+                !this.client.functions.isDeveloper(interaction.user.id))
         )
             return;
 
         const missingPermissions = dropDown.validate(interaction);
         if (missingPermissions)
             return interaction.reply(
-                this.client.functions.generateErrorMessage({
-                    title: "Missing Permissions",
-                    description: missingPermissions
-                })
+                this.client.functions.generateErrorMessage(missingPermissions)
             );
 
         const preChecked = await dropDown.preCheck(interaction);
         if (!preChecked[0]) {
             if (preChecked[1])
-                await interaction.reply({ embeds: [preChecked[1]] });
+                await interaction.reply(
+                    this.client.functions.generateErrorMessage(preChecked[1])
+                );
             return;
         }
 
@@ -139,7 +132,12 @@ export default class DropdownHandler {
         this.client.usersUsingBot.add(interaction.user.id);
         dropdown
             .run(interaction)
-            .then(() => this.client.usersUsingBot.delete(interaction.user.id))
+            .then(() => {
+                this.client.usersUsingBot.delete(interaction.user.id);
+                this.client.dataDog.increment("dropdownUsage", 1, [
+                    `dropdown:${dropdown.name}`
+                ]);
+            })
             .catch(async (error): Promise<any> => {
                 this.client.logger.error(error);
                 const sentryId =
