@@ -26,6 +26,10 @@ export default class InteractionCreate extends EventHandler {
             return this.client.buttonHandler.handleButton(interaction);
         else if (interaction.isSelectMenu())
             return this.client.dropDownHandler.handleDropDown(interaction);
+        else if (interaction.isAutocomplete())
+            return this.client.autoCompleteHandler.handleAutoComplete(
+                interaction
+            );
         const error = new Error("Invalid Interaction: Never seen this before.");
         this.client.logger.error(error);
         this.client.logger.sentry.captureWithInteraction(error, interaction);
