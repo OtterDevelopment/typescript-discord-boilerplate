@@ -127,7 +127,7 @@ export default class TextCommand {
         )
             return {
                 title: "Missing Permissions",
-                description: "This command can only be used by my developers."
+                description: "This command can only be used by my developers!"
             };
         else if (
             this.permissions.length &&
