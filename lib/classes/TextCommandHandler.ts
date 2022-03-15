@@ -91,15 +91,10 @@ export default class TextCommandHandler {
      * @param message The message created.
      */
     public async handleCommand(message: BetterMessage) {
-        if (
-            !this.client.config.prefixes.every(prefix =>
-                message.content.startsWith(prefix)
-            )
-        )
-            return;
         const prefix = this.client.config.prefixes.find(p =>
             message.content.startsWith(p)
-        )!;
+        );
+        if (!prefix) return;
         const args = message.content.slice(prefix.length).trim().split(/ +/g);
         const commandName = args.shift()?.toLowerCase();
         const command = this.fetchCommand(commandName || "");
