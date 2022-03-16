@@ -79,7 +79,7 @@ export default class ButtonHandler {
      * @param interaction The interaction created.
      */
     public async handleButton(interaction: ButtonInteraction) {
-        interaction.deferReply();
+        await interaction.deferReply({ fetchReply: true });
         const button = this.fetchButton(interaction.customId);
         if (
             !button ||
