@@ -112,7 +112,7 @@ export default class Button {
             };
         else if (
             this.clientPermissions.length &&
-            !interaction.memberPermissions?.has(this.clientPermissions)
+            !interaction.guild?.me?.permissions.has(this.clientPermissions)
         )
             return {
                 title: "Missing Permissions",
