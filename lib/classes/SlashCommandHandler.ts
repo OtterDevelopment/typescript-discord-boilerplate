@@ -196,7 +196,7 @@ export default class SlashCommandHandler {
                             })
                     )
                 );
-            return interaction.reply(
+            return interaction.editReply(
                 this.client.functions.generateErrorMessage(
                     {
                         title: "Non Existent Command",
@@ -216,14 +216,14 @@ export default class SlashCommandHandler {
 
         const missingPermissions = await command.validate(interaction);
         if (missingPermissions)
-            return interaction.reply(
+            return interaction.editReply(
                 this.client.functions.generateErrorMessage(missingPermissions)
             );
 
         const preChecked = await command.preCheck(interaction);
         if (!preChecked[0]) {
             if (preChecked[1])
-                await interaction.reply(
+                await interaction.editReply(
                     this.client.functions.generateErrorMessage(preChecked[1])
                 );
             return;
@@ -242,7 +242,7 @@ export default class SlashCommandHandler {
         interaction: CommandInteraction
     ): Promise<any> {
         if (this.coolDowns.has(interaction.user.id))
-            return interaction.reply(
+            return interaction.editReply(
                 this.client.functions.generateErrorMessage({
                     title: "Command Cooldown",
                     description:
@@ -277,7 +277,10 @@ export default class SlashCommandHandler {
                     true
                 );
                 if (interaction.replied) return interaction.followUp(toSend);
-                else return interaction.reply({ ...toSend, ephemeral: true });
+                else
+                    return interaction.editReply({
+                        ...toSend
+                    });
             });
         this.coolDowns.add(interaction.user.id);
         setTimeout(

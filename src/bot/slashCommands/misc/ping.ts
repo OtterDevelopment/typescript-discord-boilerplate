@@ -10,9 +10,8 @@ export default class Ping extends SlashCommand {
     }
 
     override async run(interaction: CommandInteraction) {
-        const message = (await interaction.reply({
-            content: "Ping?",
-            fetchReply: true
+        const message = (await interaction.editReply({
+            content: "Ping?"
         })) as Message;
         const hostLatency =
             message.createdTimestamp - interaction.createdTimestamp;

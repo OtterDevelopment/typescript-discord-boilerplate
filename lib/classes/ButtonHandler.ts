@@ -90,14 +90,14 @@ export default class ButtonHandler {
 
         const missingPermissions = button.validate(interaction);
         if (missingPermissions)
-            return interaction.reply(
+            return interaction.editReply(
                 this.client.functions.generateErrorMessage(missingPermissions)
             );
 
         const preChecked = await button.preCheck(interaction);
         if (!preChecked[0]) {
             if (preChecked[1])
-                await interaction.reply(
+                await interaction.editReply(
                     this.client.functions.generateErrorMessage(preChecked[1])
                 );
             return;
@@ -113,7 +113,7 @@ export default class ButtonHandler {
      */
     private async runButton(button: Button, interaction: ButtonInteraction) {
         if (this.coolDowns.has(interaction.user.id))
-            return interaction.reply(
+            return interaction.editReply(
                 this.client.functions.generateErrorMessage({
                     title: "Command Cooldown",
                     description:
@@ -146,10 +146,13 @@ export default class ButtonHandler {
                     true
                 );
                 if (interaction.replied) return interaction.followUp(toSend);
-                else return interaction.reply({ ...toSend, ephemeral: true });
+                else
+                    return interaction.editReply({
+                        ...toSend
+                    });
             });
         this.coolDowns.add(interaction.user.id);
-        setTimeout(
+        return setTimeout(
             () => this.coolDowns.delete(interaction.user.id),
             this.coolDownTime
         );
