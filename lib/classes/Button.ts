@@ -40,7 +40,7 @@ export default class Button {
     /**
      * Our client.
      */
-    private readonly client: BetterClient;
+    public readonly client: BetterClient;
 
     /**
      * Create our Button.
