@@ -215,14 +215,14 @@ export default class SlashCommandHandler {
 
         const missingPermissions = await command.validate(interaction);
         if (missingPermissions)
-            return interaction.editReply(
+            return interaction.reply(
                 this.client.functions.generateErrorMessage(missingPermissions)
             );
 
         const preChecked = await command.preCheck(interaction);
         if (!preChecked[0]) {
             if (preChecked[1])
-                await interaction.editReply(
+                await interaction.reply(
                     this.client.functions.generateErrorMessage(preChecked[1])
                 );
             return;

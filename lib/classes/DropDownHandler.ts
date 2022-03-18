@@ -95,14 +95,14 @@ export default class DropdownHandler {
 
         const missingPermissions = dropDown.validate(interaction);
         if (missingPermissions)
-            return interaction.editReply(
+            return interaction.reply(
                 this.client.functions.generateErrorMessage(missingPermissions)
             );
 
         const preChecked = await dropDown.preCheck(interaction);
         if (!preChecked[0]) {
             if (preChecked[1])
-                await interaction.editReply(
+                await interaction.reply(
                     this.client.functions.generateErrorMessage(preChecked[1])
                 );
             return;
@@ -121,7 +121,7 @@ export default class DropdownHandler {
         interaction: SelectMenuInteraction
     ): Promise<any> {
         if (this.coolDowns.has(interaction.user.id))
-            return interaction.editReply(
+            return interaction.reply(
                 this.client.functions.generateErrorMessage({
                     title: "Command Cooldown",
                     description:
@@ -155,7 +155,7 @@ export default class DropdownHandler {
                 );
                 if (interaction.replied) return interaction.followUp(toSend);
                 else
-                    return interaction.editReply({
+                    return interaction.reply({
                         ...toSend
                     });
             });
