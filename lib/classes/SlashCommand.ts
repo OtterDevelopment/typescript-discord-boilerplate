@@ -138,6 +138,7 @@ export default class SlashCommand {
                 description: "This command can only be used by my developers!"
             };
         else if (
+            interaction.guild &&
             this.permissions.length &&
             !interaction.memberPermissions?.has(this.permissions)
         )
@@ -155,6 +156,7 @@ export default class SlashCommand {
                 } to run this command.`
             };
         else if (
+            interaction.guild &&
             this.clientPermissions.length &&
             !interaction.guild?.me?.permissions.has(this.clientPermissions)
         )

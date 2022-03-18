@@ -130,6 +130,7 @@ export default class TextCommand {
                 description: "This command can only be used by my developers!"
             };
         else if (
+            message.guild &&
             this.permissions.length &&
             !message.member?.permissions.has(this.permissions)
         )
@@ -147,6 +148,7 @@ export default class TextCommand {
                 } to run this command.`
             };
         else if (
+            message.guild &&
             this.clientPermissions.length &&
             !message.guild?.me?.permissions.has(this.clientPermissions)
         )

@@ -94,6 +94,7 @@ export default class Button {
                 description: "This button can only be used by my developers!"
             };
         else if (
+            interaction.guild &&
             this.permissions.length &&
             !interaction.memberPermissions?.has(this.permissions)
         )
@@ -111,6 +112,7 @@ export default class Button {
                 } to run this button.`
             };
         else if (
+            interaction.guild &&
             this.clientPermissions.length &&
             !interaction.guild?.me?.permissions.has(this.clientPermissions)
         )
