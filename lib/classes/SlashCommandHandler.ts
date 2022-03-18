@@ -144,7 +144,6 @@ export default class SlashCommandHandler {
      * @param interaction The interaction created.
      */
     public async handleCommand(interaction: CommandInteraction) {
-        await interaction.deferReply({ fetchReply: true });
         const command = this.fetchCommand(interaction.commandName);
         if (!command) {
             this.client.logger.error(
@@ -196,7 +195,7 @@ export default class SlashCommandHandler {
                             })
                     )
                 );
-            return interaction.editReply(
+            return interaction.reply(
                 this.client.functions.generateErrorMessage(
                     {
                         title: "Non Existent Command",
@@ -242,7 +241,7 @@ export default class SlashCommandHandler {
         interaction: CommandInteraction
     ): Promise<any> {
         if (this.coolDowns.has(interaction.user.id))
-            return interaction.editReply(
+            return interaction.reply(
                 this.client.functions.generateErrorMessage({
                     title: "Command Cooldown",
                     description:
@@ -278,7 +277,7 @@ export default class SlashCommandHandler {
                 );
                 if (interaction.replied) return interaction.followUp(toSend);
                 else
-                    return interaction.editReply({
+                    return interaction.reply({
                         ...toSend
                     });
             });
