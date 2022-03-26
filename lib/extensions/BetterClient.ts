@@ -203,7 +203,7 @@ export default class BetterClient extends Client {
                             this.logger.sentry.captureException(error);
                         }
                     );
-            }, 10000);
+            }, 60000);
         }
     }
 
