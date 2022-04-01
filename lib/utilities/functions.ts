@@ -176,8 +176,10 @@ export default class Functions {
                     "User-Agent",
                     `${this.client.config.botName}/${this.client.config.version}`
                 )
-                .json();
-            return `${this.client.config.hastebin}/${haste.key}${
+                .send();
+            if (haste.text() === "error code: 1020")
+                return `Cloudflare Error 1020 - Ray ${haste.headers["cf-ray"]}`;
+            return `${this.client.config.hastebin}/${haste.json().key}${
                 type ? `.${type}` : ".md"
             }`;
         } catch (error) {
@@ -313,3 +315,4 @@ export default class Functions {
         return this.client.config.admins.includes(snowflake);
     }
 }
+
