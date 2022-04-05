@@ -146,5 +146,6 @@ export default class Button {
      * Run this button.
      * @param _interaction The interaction that was created.
      */
-    public async run(_interaction: ButtonInteraction): Promise<void> {}
+    public async run(_interaction: ButtonInteraction): Promise<any> {}
 }
+
