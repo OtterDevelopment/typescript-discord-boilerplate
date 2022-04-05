@@ -76,7 +76,9 @@ export default class AutoCompleteHandler {
             interaction.options.getSubcommandGroup(false) || "",
             interaction.options.getSubcommand(false) || "",
             interaction.options.getFocused(true).name || ""
-        ].join("-");
+        ]
+            .filter(Boolean)
+            .join("-");
         const autoComplete = this.fetchAutoComplete(name);
         if (!autoComplete) return;
 
@@ -110,3 +112,4 @@ export default class AutoCompleteHandler {
             });
     }
 }
+

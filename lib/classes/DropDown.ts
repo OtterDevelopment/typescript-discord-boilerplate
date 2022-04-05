@@ -48,17 +48,17 @@ export default class DropDown {
      * @param client Our client.
      * @param options The options for our button.
      */
-    constructor(name: string, client: BetterClient, options: ButtonOptions) {
+    constructor(name: string, client: BetterClient, options?: ButtonOptions) {
         this.name = name;
 
-        this.permissions = options.permissions || [];
+        this.permissions = options?.permissions || [];
         this.clientPermissions = client.config.requiredPermissions.concat(
-            options.clientPermissions || []
+            options?.clientPermissions || []
         );
 
-        this.devOnly = options.devOnly || false;
-        this.guildOnly = options.guildOnly || false;
-        this.ownerOnly = options.ownerOnly || false;
+        this.devOnly = options?.devOnly || false;
+        this.guildOnly = options?.guildOnly || false;
+        this.ownerOnly = options?.ownerOnly || false;
 
         this.client = client;
     }
@@ -148,3 +148,4 @@ export default class DropDown {
      */
     public async run(_interaction: SelectMenuInteraction): Promise<any> {}
 }
+
