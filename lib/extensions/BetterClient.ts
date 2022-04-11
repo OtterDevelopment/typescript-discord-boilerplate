@@ -199,7 +199,10 @@ export default class BetterClient extends Client {
                         () =>
                             this.logger.info(`Flushed information to DataDog.`),
                         error => {
-                            this.logger.error(error);
+                            this.logger.error(
+                                error,
+                                "Failed sending information to DataDog."
+                            );
                             this.logger.sentry.captureException(error);
                         }
                     );
