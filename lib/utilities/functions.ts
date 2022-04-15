@@ -1,6 +1,8 @@
 import { createHash } from "crypto";
 import * as petitio from "petitio";
 import {
+    Channel,
+    GuildChannel,
     MessageActionRow,
     MessageButton,
     MessageEmbed,
@@ -236,8 +238,7 @@ export default class Functions {
      * @param user The user to parse.
      * @return The parsed user.
      */
-    public async parseUser(user?: string): Promise<User | undefined> {
-        if (!user) return undefined;
+    public async parseUser(user: string): Promise<User | null> {
         if (
             (user.startsWith("<@") || user.startsWith("<@!")) &&
             user.endsWith(">")
@@ -253,11 +254,36 @@ export default class Functions {
                 (await this.client.users.fetch(user))
             );
         } catch (error: any) {
-            if (error.code === 50035) return undefined;
+            if (error.code === 50035) return null;
             this.client.logger.error(error);
             this.client.logger.sentry.captureWithExtras(error, { input: user });
         }
-        return undefined;
+        return null;
+    }
+
+    public async parseChannel(channel: string): Promise<Channel | null> {
+        if (channel.startsWith("#")) channel = channel.slice(1);
+        else if (channel.startsWith("<#") && channel.endsWith(">"))
+            channel = channel.slice(2, -1);
+        try {
+            return (
+                this.client.channels.cache.get(channel) ||
+                this.client.channels.cache.find(c =>
+                    c instanceof GuildChannel
+                        ? c.name.toLowerCase() === channel.toLowerCase()
+                        : false
+                ) ||
+                (await this.client.channels.fetch(channel))
+            );
+        } catch (error: any) {
+            if (error.code === 50035) return null;
+            else if (error.httpStatus === 404) return null;
+            this.client.logger.error(error);
+            this.client.logger.sentry.captureWithExtras(error, {
+                input: channel
+            });
+        }
+        return null;
     }
 
     /**
