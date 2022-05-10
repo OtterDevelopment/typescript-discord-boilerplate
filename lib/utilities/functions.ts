@@ -9,7 +9,6 @@ import {
     MessageEmbedOptions,
     PermissionString,
     Snowflake,
-    Team,
     User
 } from "discord.js";
 import { existsSync, mkdirSync, readdirSync } from "fs";
