@@ -24,3 +24,4 @@ export default class Ping extends SlashCommand {
         });
     }
 }
+
