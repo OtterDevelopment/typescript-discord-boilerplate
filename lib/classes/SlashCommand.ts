@@ -96,14 +96,21 @@ export default class SlashCommand {
      */
     public async applyCooldown(userId: Snowflake): Promise<boolean> {
         if (this.cooldown)
-            return !!(await this.client.mongo
-                .db("cooldowns")
-                .collection("slashCommands")
-                .updateOne(
-                    { textCommand: this.name.toLowerCase() },
-                    { $set: { [userId]: Date.now() } },
-                    { upsert: true }
-                ));
+            return !!(await this.client.prisma.cooldown.upsert({
+                where: {
+                    commandName_commandType_userId: {
+                        commandName: this.name.toLowerCase(),
+                        commandType: "SLASH_COMMAND",
+                        userId
+                    }
+                },
+                update: { createdAt: new Date() },
+                create: {
+                    commandName: this.name.toLowerCase(),
+                    commandType: "SLASH_COMMAND",
+                    userId
+                }
+            }));
         return false;
     }
 
@@ -174,22 +181,24 @@ export default class SlashCommand {
                 } to run this command.`
             };
         else if (this.cooldown) {
-            const onCooldown = await this.client.mongo
-                .db("cooldowns")
-                .collection("slashCommands")
-                .findOne({
-                    textCommand: this.name.toLowerCase(),
-                    [interaction.user.id]: { $exists: true }
-                });
-            if (onCooldown)
+            const cooldownItem = await this.client.prisma.cooldown.findUnique({
+                where: {
+                    commandName_commandType_userId: {
+                        commandName: this.name.toLowerCase(),
+                        commandType: "SLASH_COMMAND",
+                        userId: interaction.user.id
+                    }
+                }
+            });
+            if (cooldownItem)
                 if (
-                    Date.now() - onCooldown[interaction.user.id] <
+                    Date.now() - cooldownItem.createdAt.valueOf() <
                     this.cooldown
                 )
                     return {
                         title: "Command On Cooldown",
                         description: `This command is still on cooldown for another ${format(
-                            onCooldown[interaction.user.id] +
+                            cooldownItem.createdAt.valueOf() +
                                 this.cooldown -
                                 Date.now(),
                             true

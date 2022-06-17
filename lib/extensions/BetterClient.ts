@@ -1,5 +1,5 @@
 import { resolve } from "path";
-import { MongoClient } from "mongodb";
+import { PrismaClient } from "@prisma/client";
 import * as metrics from "datadog-metrics";
 import { Client, ClientOptions, Collection } from "discord.js";
 import Button from "../classes/Button.js";
@@ -95,9 +95,9 @@ export default class BetterClient extends Client {
     public events: Map<string, EventHandler>;
 
     /**
-     * Our MongoDB database.
+     * Our Prisma client.
      */
-    public readonly mongo: MongoClient;
+    public readonly prisma: PrismaClient;
 
     /**
      * Our data dog client.
@@ -155,7 +155,7 @@ export default class BetterClient extends Client {
 
         this.events = new Map();
 
-        this.mongo = new MongoClient(process.env.MONGO_URI);
+        this.prisma = new PrismaClient();
 
         this.version =
             process.env.NODE_ENV === "development"
@@ -208,14 +208,6 @@ export default class BetterClient extends Client {
                     );
             }, 60000);
         }
-    }
-
-    /**
-     * Connect to MongoDB and login to Discord.
-     */
-    override async login() {
-        await this.mongo.connect();
-        return super.login();
     }
 
     /**
@@ -277,3 +269,4 @@ export default class BetterClient extends Client {
         return reducedStats || this.cachedStats;
     }
 }
+

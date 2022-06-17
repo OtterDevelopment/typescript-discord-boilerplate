@@ -9,18 +9,6 @@ export default class InteractionCreate extends EventHandler {
             }`
         );
         // @ts-ignore
-        if (this.client.mongo.topology.s.state !== "connected")
-            // @ts-ignore
-            return interaction.reply(
-                this.client.functions.generateErrorMessage(
-                    {
-                        title: "Not Ready",
-                        description:
-                            "I'm not ready yet, please try again in a moment!"
-                    },
-                    true
-                )
-            );
         if (interaction.isCommand()) {
             this.client.stats.commandsRun++;
             return this.client.slashCommandHandler.handleCommand(interaction);

@@ -130,15 +130,6 @@ export default class Eval extends TextCommand {
             content
                 .replace(this.client.token || "", "[ T O K E N ]")
                 // @ts-ignore
-                .replace(this.client.mongo.s.url, "[ M O N G O ]")
-                .replace(
-                    this.client.mongo.options.credentials?.password || "",
-                    "[ M O N G O P A S S ]"
-                )
-                .replace(
-                    this.client.mongo.options.srvHost || "",
-                    "[ M O N G O H O S T ]"
-                )
                 .replace(
                     this.client.config.dataDog.apiKey || "",
                     "[ D A T A D O G A P I K E Y ]"
