@@ -40,7 +40,7 @@ export default class AutoCompleteHandler {
                             // eslint-disable-next-line new-cap
                             new autoCompleteFile.default(this.client);
                         return this.client.autoCompletes.set(
-                            autoComplete.name,
+                            autoComplete.name[0],
                             autoComplete
                         );
                     })
@@ -61,8 +61,10 @@ export default class AutoCompleteHandler {
      * @returns The autoComplete we've found.
      */
     private fetchAutoComplete(name: string): AutoComplete | undefined {
-        return this.client.autoCompletes.find(
-            autoComplete => autoComplete.name === name
+        return this.client.autoCompletes.find(autoComplete =>
+            autoComplete.name.some(autoCompleteName =>
+                name.startsWith(autoCompleteName)
+            )
         );
     }
 

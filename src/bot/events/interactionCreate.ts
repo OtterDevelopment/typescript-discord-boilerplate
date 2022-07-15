@@ -9,9 +9,20 @@ export default class InteractionCreate extends EventHandler {
             }`
         );
         // @ts-ignore
-        if (interaction.isCommand()) {
+        if (this.client.mongo.topology.s.state !== "connected")
+            // @ts-ignore
+            return interaction.reply(
+                this.client.functions.generateErrorMessage({
+                    title: "Not Ready",
+                    description:
+                        "I'm not ready yet, please try again in a moment!"
+                })
+            );
+        if (interaction.isCommand() || interaction.isContextMenu()) {
             this.client.stats.commandsRun++;
-            return this.client.slashCommandHandler.handleCommand(interaction);
+            return this.client.applicationCommandHandler.handleCommand(
+                interaction
+            );
         } else if (interaction.isButton())
             return this.client.buttonHandler.handleButton(interaction);
         else if (interaction.isSelectMenu())
@@ -26,13 +37,10 @@ export default class InteractionCreate extends EventHandler {
         this.client.logger.sentry.captureWithInteraction(error, interaction);
         // @ts-ignore
         return interaction.reply(
-            this.client.functions.generateErrorMessage(
-                {
-                    title: "Invalid Interaction",
-                    description: "I've never seen this type of interaction"
-                },
-                true
-            )
+            this.client.functions.generateErrorMessage({
+                title: "Invalid Interaction",
+                description: "I've never seen this type of interaction"
+            })
         );
     }
 }

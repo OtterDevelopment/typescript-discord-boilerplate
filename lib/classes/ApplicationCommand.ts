@@ -1,15 +1,16 @@
 import { format } from "@lukeed/ms";
 import {
-    ApplicationCommandOptionData,
-    CommandInteraction,
-    MessageEmbedOptions,
+    ApplicationCommandType,
     PermissionString,
+    CommandInteraction,
+    ContextMenuInteraction,
+    MessageEmbedOptions,
     Snowflake
 } from "discord.js";
-import { SlashCommandOptions } from "../../typings";
-import BetterClient from "../extensions/BetterClient.js";
+import { ApplicationCommandOptions } from "../../typings";
+import BetterClient from "../extensions/BetterClient";
 
-export default class SlashCommand {
+export default class ApplicationCommand {
     /**
      * The name for our slash command.
      */
@@ -18,12 +19,17 @@ export default class SlashCommand {
     /**
      * The description for our slash command.
      */
-    public readonly description: string;
+    public readonly description?: string;
+
+    /**
+     * The type of the slash command, usually CHAT_INPUT
+     */
+    public readonly type: ApplicationCommandType;
 
     /**
      * The options for our slash command.
      */
-    public readonly options: ApplicationCommandOptionData[];
+    public readonly options: ApplicationCommandOptions;
 
     /**
      * The permissions a user would require to execute this slash command.
@@ -61,19 +67,20 @@ export default class SlashCommand {
     public readonly client: BetterClient;
 
     /**
-     * Create our slash command.
-     * @param name The name of our slash command.
+     * Create our application commands.
+     * @param name The name of our application command.
      * @param client Our client.
-     * @param options The options for our slash command.
+     * @param options The options for our application command.
      */
     constructor(
         name: string,
         client: BetterClient,
-        options: SlashCommandOptions
+        options: ApplicationCommandOptions
     ) {
         this.name = name;
-        this.description = options.description || "";
-        this.options = options.options || [];
+        this.description = options.description;
+        this.options = options;
+        this.type = options.type || "CHAT_INPUT";
 
         this.permissions = options.permissions || [];
         this.clientPermissions = client.config.requiredPermissions.concat(
@@ -115,12 +122,12 @@ export default class SlashCommand {
     }
 
     /**
-     * Validate this interaction to make sure this slash command can be executed.
+     * Validate this interaction to make sure this application command can be executed.
      * @param interaction The interaction that was created.
-     * @returns Options for the embed to send or null if the slash command is valid.
+     * @returns Options for the embed to send or null if the application command is valid.
      */
     public async validate(
-        interaction: CommandInteraction
+        interaction: CommandInteraction | ContextMenuInteraction
     ): Promise<MessageEmbedOptions | null> {
         if (this.guildOnly && !interaction.inGuild())
             return {
@@ -209,19 +216,21 @@ export default class SlashCommand {
     }
 
     /**
-     * This function must be evaluated to true or else this slash command will not be executed.
+     * This function must be evaluated to true or else this application command will not be executed.
      * @param _interaction The interaction that was created.
      */
     public async preCheck(
-        _interaction: CommandInteraction
+        _interaction: CommandInteraction | ContextMenuInteraction
     ): Promise<[boolean, MessageEmbedOptions?]> {
         return [true];
     }
 
     /**
-     * Run this slash command.
+     * Run this application command.
      * @param _interaction The interaction that was created.
      */
-    public async run(_interaction: CommandInteraction): Promise<any> {}
+    public async run(
+        _interaction: CommandInteraction | ContextMenuInteraction
+    ): Promise<any> {}
 }
 

@@ -136,14 +136,11 @@ export default class ButtonHandler {
                         error,
                         interaction
                     );
-                const toSend = this.client.functions.generateErrorMessage(
-                    {
-                        title: "An Error Has Occurred",
-                        description: `An unexpected error was encountered while running this button, my developers have already been notified! Feel free to join my support server in the mean time!`,
-                        footer: { text: `Sentry Event ID: ${sentryId} ` }
-                    },
-                    true
-                );
+                const toSend = this.client.functions.generateErrorMessage({
+                    title: "An Error Has Occurred",
+                    description: `An unexpected error was encountered while running this button, my developers have already been notified! Feel free to join my support server in the mean time!`,
+                    footer: { text: `Sentry Event ID: ${sentryId} ` }
+                });
                 if (interaction.replied) return interaction.followUp(toSend);
                 else
                     return interaction.reply({
