@@ -10,13 +10,13 @@ import Functions from "../utilities/functions.js";
 import { CachedStats, Stats } from "../../typings";
 import TextCommand from "../classes/TextCommand.js";
 import EventHandler from "../classes/EventHandler.js";
-import SlashCommand from "../classes/SlashCommand.js";
 import ButtonHandler from "../classes/ButtonHandler.js";
 import DropDownHandler from "../classes/DropDownHandler.js";
 import TextCommandHandler from "../classes/TextCommandHandler.js";
-import SlashCommandHandler from "../classes/SlashCommandHandler.js";
 import AutoCompleteHandler from "../classes/AutoCompleteHandler.js";
 import AutoComplete from "../classes/AutoComplete.js";
+import ApplicationCommandHandler from "../classes/ApplicationCommandHandler.js";
+import ApplicationCommand from "../classes/ApplicationCommand.js";
 
 export default class BetterClient extends Client {
     /**
@@ -40,14 +40,14 @@ export default class BetterClient extends Client {
     public readonly logger: Logger.Logger;
 
     /**
-     * The slashCommandHandler for our client.
+     * The applicationCommandHandler for our client.
      */
-    public readonly slashCommandHandler: SlashCommandHandler;
+    public readonly applicationCommandHandler: ApplicationCommandHandler;
 
     /**
-     * The slashCommands for our client.
+     * The applicationCommands for our client.
      */
-    public slashCommands: Collection<string, SlashCommand>;
+    public applicationCommands: Collection<string, ApplicationCommand>;
 
     /**
      * The textCommandHandler for our client.
@@ -138,8 +138,8 @@ export default class BetterClient extends Client {
         this.functions = new Functions(this);
         this.logger = Logger.default;
 
-        this.slashCommandHandler = new SlashCommandHandler(this);
-        this.slashCommands = new Collection();
+        this.applicationCommandHandler = new ApplicationCommandHandler(this);
+        this.applicationCommands = new Collection();
 
         this.textCommandHandler = new TextCommandHandler(this);
         this.textCommands = new Collection();
@@ -177,7 +177,7 @@ export default class BetterClient extends Client {
 
         this.dropDownHandler.loadDropDowns();
         this.buttonHandler.loadButtons();
-        this.slashCommandHandler.loadSlashCommands();
+        this.applicationCommandHandler.loadApplicationCommands();
         this.textCommandHandler.loadTextCommands();
         this.autoCompleteHandler.loadAutoCompletes();
         this.loadEvents();
@@ -277,3 +277,4 @@ export default class BetterClient extends Client {
         return reducedStats || this.cachedStats;
     }
 }
+

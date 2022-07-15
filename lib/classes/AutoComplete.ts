@@ -5,7 +5,7 @@ export default class AutoComplete {
     /**
      * The name of our autoComplete.
      */
-    public readonly name: string;
+    public readonly name: string[];
 
     /**
      * Our client.
@@ -17,7 +17,7 @@ export default class AutoComplete {
      * @param name The name of our autoComplete.
      * @param client Our client.
      */
-    constructor(name: string, client: BetterClient) {
+    constructor(name: string[], client: BetterClient) {
         this.name = name;
 
         this.client = client;
@@ -29,3 +29,4 @@ export default class AutoComplete {
      */
     public async run(_interaction: AutocompleteInteraction): Promise<void> {}
 }
+
