@@ -330,22 +330,5 @@ export default class Functions {
     public isFunction(input: any): boolean {
         return typeof input === "function";
     }
-
-    /**
-     * Convert an array to a different dimension.
-     * @param array The array to convert.
-     * @param dimensions The new dimensions of the array.
-     * @returns The converted array.
-     */
-    public changeDimensions<Type>(
-        array: Array<Type>,
-        dimensions: number
-    ): Array<Array<Type>> {
-        const newArray = [];
-        for (let i = 0; i < array.length; i += dimensions) {
-            newArray.push(array.slice(i, i + dimensions));
-        }
-        return newArray;
-    }
 }
 
