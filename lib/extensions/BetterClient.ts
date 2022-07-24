@@ -177,6 +177,7 @@ export default class BetterClient extends Client {
 
         this.dropDownHandler.loadDropDowns();
         this.buttonHandler.loadButtons();
+        this.autoCompleteHandler.loadAutoCompletes();
         this.applicationCommandHandler.loadApplicationCommands();
         this.textCommandHandler.loadTextCommands();
         this.autoCompleteHandler.loadAutoCompletes();
