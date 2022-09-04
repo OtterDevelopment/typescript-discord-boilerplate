@@ -1,6 +1,7 @@
-import { CommandInteraction, Message } from "discord.js";
-import ApplicationCommand from "../../../../lib/classes/ApplicationCommand.js";
 import BetterClient from "../../../../lib/extensions/BetterClient.js";
+import BetterMessage from "../../../../lib/extensions/BetterMessage.js";
+import ApplicationCommand from "../../../../lib/classes/ApplicationCommand.js";
+import BetterCommandInteraction from "../../../../lib/extensions/BetterCommandInteraction.js";
 
 export default class Ping extends ApplicationCommand {
     constructor(client: BetterClient) {
@@ -10,19 +11,23 @@ export default class Ping extends ApplicationCommand {
         });
     }
 
-    override async run(interaction: CommandInteraction) {
+    public override async run(interaction: BetterCommandInteraction) {
+        const language =
+            interaction.language || (await interaction.fetchLanguage());
+
         const message = (await interaction.reply({
-            content: "Ping?",
+            content: language.get("PING"),
             fetchReply: true
-        })) as unknown as Message;
+        })) as unknown as BetterMessage;
         const hostLatency =
             message.createdTimestamp - interaction.createdTimestamp;
         const apiLatency = Math.round(this.client.ws.ping);
         return interaction.editReply({
-            content: `Pong! Round trip took ${(
-                hostLatency + apiLatency
-            ).toLocaleString()}ms. (Host latency is ${hostLatency.toLocaleString()} and API latency is ${apiLatency.toLocaleString()}ms)`
+            content: language.get("PONG", {
+                roundTrip: hostLatency + apiLatency,
+                hostLatency,
+                apiLatency
+            })
         });
     }
 }
-

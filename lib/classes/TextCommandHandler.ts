@@ -2,21 +2,15 @@ import { Snowflake } from "discord.js";
 import TextCommand from "./TextCommand.js";
 import BetterClient from "../extensions/BetterClient.js";
 import BetterMessage from "../extensions/BetterMessage.js";
+import Language from "./Language.js";
+
+void BetterMessage;
 
 export default class TextCommandHandler {
-    /**
-     * Our client.
-     */
     private readonly client: BetterClient;
 
-    /**
-     * How long a user must wait between each text command.
-     */
     private readonly coolDownTime: number;
 
-    /**
-     * Our user's cooldowns.
-     */
     private coolDowns: Set<Snowflake>;
 
     /**
@@ -135,12 +129,18 @@ export default class TextCommandHandler {
         message: BetterMessage,
         args: string[]
     ) {
+        const language = (message.language ||
+            (await message.fetchLanguage())) as Language;
+
         if (this.coolDowns.has(message.author.id))
             return message.reply(
                 this.client.functions.generateErrorMessage({
-                    title: "Command Cooldown",
-                    description:
-                        "Please wait a second before running this command again!"
+                    title: language.get("COOLDOWN_ON_TYPE_TITLE", {
+                        type: "Command"
+                    }),
+                    description: language.get("COOLDOWN_ON_TYPE_DESCRIPTION", {
+                        type: "command"
+                    })
                 })
             );
 
@@ -162,8 +162,11 @@ export default class TextCommandHandler {
                     );
                 return message.reply(
                     this.client.functions.generateErrorMessage({
-                        title: "An Error Has Occurred",
-                        description: `An unexpected error was encountered while running \`${command.name}\`, my developers have already been notified! Feel free to join my support server in the mean time!`,
+                        title: language.get("AN_ERROR_HAS_OCCURRED_TITLE"),
+                        description: language.get(
+                            "AN_ERROR_HAS_OCCURRED_DESCRIPTION",
+                            { type: "command", name: command.name }
+                        ),
                         footer: { text: `Sentry Event ID: ${sentryId} ` }
                     })
                 );
@@ -175,4 +178,3 @@ export default class TextCommandHandler {
         );
     }
 }
-

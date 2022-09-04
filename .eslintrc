@@ -1,11 +1,11 @@
 {
-    "extends": [
+  "extends": [
       "airbnb-base",
       "airbnb-typescript/base",
       "plugin:prettier/recommended"
-    ],
-    "plugins": ["prettier"],
-    "rules": {
+  ],
+  "plugins": ["prettier"],
+  "rules": {
       "prettier/prettier": ["off"],
       "func-names": "off",
       "no-unused-vars": "off",
@@ -23,9 +23,18 @@
       "no-underscore-dangle": "off",
       "no-console": "error",
       "no-restricted-syntax": "off",
-      "@typescript-eslint/no-empty-function": "off"
-    },
-    "parserOptions": {
+      "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/naming-convention": "off",
+      "import/prefer-default-export": "off",
+      "no-void": "off",
+      "no-continue": "off"
+  },
+  "overrides": [
+      {
+          "files": ["*.ts"]
+      }
+  ],
+  "parserOptions": {
       "project": "./tsconfig.json"
-    }
   }
+}

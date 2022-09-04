@@ -1,22 +1,16 @@
 /* eslint-disable import/order */
 import Button from "./Button.js";
-import { ButtonInteraction } from "discord.js";
 import BetterClient from "../extensions/BetterClient.js";
+import BetterButtonInteraction from "../extensions/BetterButtonInteraction.js";
+import Language from "./Language.js";
+
+void BetterButtonInteraction;
 
 export default class ButtonHandler {
-    /**
-     * Our client.
-     */
     private readonly client: BetterClient;
 
-    /**
-     * How long a user must wait between each button.
-     */
     private readonly coolDownTime: number;
 
-    /**
-     * Our user's cooldowns.
-     */
     private readonly coolDowns: Set<string>;
 
     /**
@@ -78,7 +72,7 @@ export default class ButtonHandler {
      * Handle the interaction created for this button to make sure the user and client can execute it.
      * @param interaction The interaction created.
      */
-    public async handleButton(interaction: ButtonInteraction) {
+    public async handleButton(interaction: BetterButtonInteraction) {
         const button = this.fetchButton(interaction.customId);
         if (
             !button ||
@@ -87,7 +81,7 @@ export default class ButtonHandler {
         )
             return;
 
-        const missingPermissions = button.validate(interaction);
+        const missingPermissions = await button.validate(interaction);
         if (missingPermissions)
             return interaction.reply(
                 this.client.functions.generateErrorMessage(missingPermissions)
@@ -110,13 +104,22 @@ export default class ButtonHandler {
      * @param button The button we want to execute.
      * @param interaction The interaction for our button.
      */
-    private async runButton(button: Button, interaction: ButtonInteraction) {
+    private async runButton(
+        button: Button,
+        interaction: BetterButtonInteraction
+    ) {
+        const language = (interaction.language ||
+            (await interaction.fetchLanguage())) as Language;
+
         if (this.coolDowns.has(interaction.user.id))
             return interaction.reply(
                 this.client.functions.generateErrorMessage({
-                    title: "Command Cooldown",
-                    description:
-                        "Please wait a second before running this button again!"
+                    title: language.get("COOLDOWN_ON_TYPE_TITLE", {
+                        type: "Button"
+                    }),
+                    description: language.get("COOLDOWN_ON_TYPE_DESCRIPTION", {
+                        type: "button"
+                    })
                 })
             );
 
@@ -137,8 +140,11 @@ export default class ButtonHandler {
                         interaction
                     );
                 const toSend = this.client.functions.generateErrorMessage({
-                    title: "An Error Has Occurred",
-                    description: `An unexpected error was encountered while running this button, my developers have already been notified! Feel free to join my support server in the mean time!`,
+                    title: language.get("AN_ERROR_HAS_OCCURRED_TITLE"),
+                    description: language.get(
+                        "AN_ERROR_HAS_OCCURRED_DESCRIPTION_NO_NAME",
+                        { type: "button" }
+                    ),
                     footer: { text: `Sentry Event ID: ${sentryId} ` }
                 });
                 if (interaction.replied) return interaction.followUp(toSend);
@@ -154,4 +160,3 @@ export default class ButtonHandler {
         );
     }
 }
-

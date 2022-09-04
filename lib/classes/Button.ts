@@ -3,43 +3,24 @@ import {
     MessageEmbedOptions,
     PermissionString
 } from "discord.js";
+import Language from "./Language.js";
 import { ButtonOptions } from "../../typings";
 import BetterClient from "../extensions/BetterClient.js";
+import BetterButtonInteraction from "../extensions/BetterButtonInteraction.js";
 
 export default class Button {
-    /**
-     * The beginning of the customId this button listens for.
-     */
     public readonly name: string;
 
-    /**
-     * The permissions a user would require to execute this button.
-     */
     private readonly permissions: PermissionString[];
 
-    /**
-     * The permissions the client requires to execute this button.
-     */
     private readonly clientPermissions: PermissionString[];
 
-    /**
-     * Whether this button is only for developers.
-     */
     private readonly devOnly: boolean;
 
-    /**
-     * Whether this button is only to be used in guilds.
-     */
     private readonly guildOnly: boolean;
 
-    /**
-     * Whether this button is only to be used by guild owners.
-     */
     private readonly ownerOnly: boolean;
 
-    /**
-     * Our client.
-     */
     public readonly client: BetterClient;
 
     /**
@@ -68,30 +49,32 @@ export default class Button {
      * @param interaction The interaction that was created.
      * @returns The error or null if the command is valid.
      */
-    public validate(
-        interaction: ButtonInteraction
-    ): MessageEmbedOptions | null {
+    public async validate(
+        interaction: BetterButtonInteraction
+    ): Promise<MessageEmbedOptions | null> {
+        const language = (interaction.language ||
+            (await interaction.fetchLanguage())) as Language;
+
         if (this.guildOnly && !interaction.inGuild())
             return {
-                title: "Missing Permissions",
-                description: "This button can only be used in guilds!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_GUILD_ONLY")
             };
         else if (
             this.ownerOnly &&
             interaction.guild?.ownerId !== interaction.user.id
         )
             return {
-                title: "Missing Permissions",
-                description:
-                    "This button can only be ran by the owner of this guild!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY")
             };
         else if (
             this.devOnly &&
             !this.client.functions.isAdmin(interaction.user.id)
         )
             return {
-                title: "Missing Permissions",
-                description: "This button can only be used by my developers!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_DEVELOPER_ONLY")
             };
         else if (
             interaction.guild &&
@@ -99,17 +82,33 @@ export default class Button {
             !interaction.memberPermissions?.has(this.permissions)
         )
             return {
-                title: "Missing Permissions",
-                description: `You need the ${this.permissions
-                    .map(
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    this.permissions.filter(
                         permission =>
-                            `**${this.client.functions.getPermissionName(
-                                permission
-                            )}**`
-                    )
-                    .join(", ")} permission${
-                    this.permissions.length > 1 ? "s" : ""
-                } to run this button.`
+                            !interaction.memberPermissions?.has(permission)
+                    ).length === 1
+                        ? "MISSING_PERMISSIONS_USER_PERMISSIONS_ONE"
+                        : "MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER",
+                    {
+                        permissions: this.permissions
+                            .filter(
+                                permission =>
+                                    !interaction.memberPermissions?.has(
+                                        permission
+                                    )
+                            )
+                            .map(
+                                permission =>
+                                    `**${this.client.functions.getPermissionName(
+                                        permission,
+                                        language
+                                    )}**`
+                            )
+                            .join(", "),
+                        type: "button"
+                    }
+                )
             };
         else if (
             interaction.guild &&
@@ -117,17 +116,33 @@ export default class Button {
             !interaction.guild?.me?.permissions.has(this.clientPermissions)
         )
             return {
-                title: "Missing Permissions",
-                description: `I need the ${this.clientPermissions
-                    .map(
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    this.permissions.filter(
                         permission =>
-                            `**${this.client.functions.getPermissionName(
-                                permission
-                            )}**`
-                    )
-                    .join(", ")} permission${
-                    this.clientPermissions.length > 1 ? "s" : ""
-                } to run this button.`
+                            !interaction.guild?.me?.permissions?.has(permission)
+                    ).length === 1
+                        ? "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE"
+                        : "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_OTHER",
+                    {
+                        permissions: this.permissions
+                            .filter(
+                                permission =>
+                                    !interaction.guild?.me?.permissions?.has(
+                                        permission
+                                    )
+                            )
+                            .map(
+                                permission =>
+                                    `**${this.client.functions.getPermissionName(
+                                        permission,
+                                        language
+                                    )}**`
+                            )
+                            .join(", "),
+                        type: "button"
+                    }
+                )
             };
         return null;
     }
@@ -148,4 +163,3 @@ export default class Button {
      */
     public async run(_interaction: ButtonInteraction): Promise<any> {}
 }
-

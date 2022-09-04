@@ -1,40 +1,20 @@
-import {
-    MessageEmbedOptions,
-    PermissionString,
-    SelectMenuInteraction
-} from "discord.js";
+import { MessageEmbedOptions, PermissionString } from "discord.js";
+import Language from "./Language.js";
 import { ButtonOptions } from "../../typings";
 import BetterClient from "../extensions/BetterClient.js";
+import BetterSelectMenuInteraction from "../extensions/BetterSelectMenuInteraction.js";
 
 export default class DropDown {
-    /**
-     * The beginning of the customId the dropdown listens for.
-     */
     public readonly name: string;
 
-    /**
-     * The permissions a user would require to execute this dropdown.
-     */
     private readonly permissions: PermissionString[];
 
-    /**
-     * The permissions the client requires to execute this dropdown.
-     */
     private readonly clientPermissions: PermissionString[];
 
-    /**
-     * Whether this dropdown is only for developers.
-     */
     private readonly devOnly: boolean;
 
-    /**
-     * Whether this dropdown is only to be used in guilds.
-     */
     private readonly guildOnly: boolean;
 
-    /**
-     * Whether this button is only to be used by guild owners.
-     */
     private readonly ownerOnly: boolean;
 
     /**
@@ -68,30 +48,32 @@ export default class DropDown {
      * @param interaction The interaction that was created.
      * @returns The error or null if the command is valid.
      */
-    public validate(
-        interaction: SelectMenuInteraction
-    ): MessageEmbedOptions | null {
+    public async validate(
+        interaction: BetterSelectMenuInteraction
+    ): Promise<MessageEmbedOptions | null> {
+        const language = (interaction.language ||
+            (await interaction.fetchLanguage())) as Language;
+
         if (this.guildOnly && !interaction.inGuild())
             return {
-                title: "Missing Permissions",
-                description: "This drop down can only be used in guilds!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_GUILD_ONLY")
             };
         else if (
             this.ownerOnly &&
             interaction.guild?.ownerId !== interaction.user.id
         )
             return {
-                title: "Missing Permissions",
-                description:
-                    "This drop down can only be ran by the owner of this guild!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY")
             };
         else if (
             this.devOnly &&
             !this.client.functions.isAdmin(interaction.user.id)
         )
             return {
-                title: "Missing Permissions",
-                description: "This drop down can only be used by my developers!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_DEVELOPER_ONLY")
             };
         else if (
             interaction.guild &&
@@ -99,17 +81,33 @@ export default class DropDown {
             !interaction.memberPermissions?.has(this.permissions)
         )
             return {
-                title: "Missing Permissions",
-                description: `You need the ${this.permissions
-                    .map(
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    this.permissions.filter(
                         permission =>
-                            `**${this.client.functions.getPermissionName(
-                                permission
-                            )}**`
-                    )
-                    .join(", ")} permission${
-                    this.permissions.length > 1 ? "s" : ""
-                } to run this drop down.`
+                            !interaction.memberPermissions?.has(permission)
+                    ).length === 1
+                        ? "MISSING_PERMISSIONS_USER_PERMISSIONS_ONE"
+                        : "MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER",
+                    {
+                        permissions: this.permissions
+                            .filter(
+                                permission =>
+                                    !interaction.memberPermissions?.has(
+                                        permission
+                                    )
+                            )
+                            .map(
+                                permission =>
+                                    `**${this.client.functions.getPermissionName(
+                                        permission,
+                                        language
+                                    )}**`
+                            )
+                            .join(", "),
+                        type: "dropdown"
+                    }
+                )
             };
         else if (
             interaction.guild &&
@@ -117,17 +115,33 @@ export default class DropDown {
             !interaction.guild?.me?.permissions.has(this.clientPermissions)
         )
             return {
-                title: "Missing Permissions",
-                description: `I need the ${this.clientPermissions
-                    .map(
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    this.permissions.filter(
                         permission =>
-                            `**${this.client.functions.getPermissionName(
-                                permission
-                            )}**`
-                    )
-                    .join(", ")} permission${
-                    this.clientPermissions.length > 1 ? "s" : ""
-                } to run this drop down.`
+                            !interaction.guild?.me?.permissions?.has(permission)
+                    ).length === 1
+                        ? "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE"
+                        : "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_OTHER",
+                    {
+                        permissions: this.permissions
+                            .filter(
+                                permission =>
+                                    !interaction.guild?.me?.permissions?.has(
+                                        permission
+                                    )
+                            )
+                            .map(
+                                permission =>
+                                    `**${this.client.functions.getPermissionName(
+                                        permission,
+                                        language
+                                    )}**`
+                            )
+                            .join(", "),
+                        type: "dropdown"
+                    }
+                )
             };
         return null;
     }
@@ -137,7 +151,7 @@ export default class DropDown {
      * @param _interaction The interaction that was created.
      */
     public async preCheck(
-        _interaction: SelectMenuInteraction
+        _interaction: BetterSelectMenuInteraction
     ): Promise<[boolean, MessageEmbedOptions?]> {
         return [true];
     }
@@ -146,6 +160,5 @@ export default class DropDown {
      * Run this dropdown.
      * @param _interaction The interaction that was created.
      */
-    public async run(_interaction: SelectMenuInteraction): Promise<any> {}
+    public async run(_interaction: BetterSelectMenuInteraction): Promise<any> {}
 }
-

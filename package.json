@@ -1,23 +1,37 @@
 {
-    "name": "",
+    "name": "simplemod",
     "version": "1.0.0",
     "description": "",
     "main": "dist/src/index.js",
     "type": "module",
     "scripts": {
-        "build": "tsc && cross-env NODE_ENV=development node .",
-        "start": "cross-env NODE_ENV=production node ."
+        "build": "pnpm tsc && pnpm cross-env NODE_ENV=development node .",
+        "start": "cross-env NODE_ENV=production node .",
+        "prepare": "husky install"
+    },
+    "lint-staged": {
+        "**/*.{ts,json}": [
+            "pnpm prettier --write"
+        ],
+        "languages/*": [
+            "ts-node-esm languages/interface.ts",
+            "pnpm prettier typings/language.d.ts --write",
+            "git add typings/language.d.ts"
+        ]
     },
     "dependencies": {
+        "@discordjs/rest": "^1.1.0",
         "@lukeed/ms": "^2.0.0",
         "@sentry/node": "^6.15.0",
         "@sentry/tracing": "^6.15.0",
         "colorette": "^2.0.16",
         "datadog-metrics": "^0.9.3",
+        "discord-api-types": "^0.37.1",
         "discord.js": "github:FireDiscordBot/discord.js",
         "dotenv-extended": "^2.9.0",
-        "mongodb": "^4.2.0",
-        "petitio": "^1.4.0"
+        "i18next": "^21.8.14",
+        "i18next-intervalplural-postprocessor": "^3.0.0",
+        "mongodb": "^4.2.0"
     },
     "devDependencies": {
         "@sentry/types": "^6.15.0",
@@ -27,14 +41,16 @@
         "@typescript-eslint/eslint-plugin": "^5.8.0",
         "@typescript-eslint/parser": "^5.8.0",
         "cross-env": "^7.0.3",
-        "discord-api-types": "^0.28.0",
         "eslint": "^8.5.0",
         "eslint-config-airbnb-base": "^15.0.0",
         "eslint-config-airbnb-typescript": "^16.1.0",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-import": "^2.25.3",
         "eslint-plugin-prettier": "^4.0.0",
+        "husky": "^8.0.1",
+        "lint-staged": "^13.0.3",
         "prettier": "^2.5.1",
+        "ts-node": "^10.9.1",
         "typescript": "^4.5.2"
     }
 }

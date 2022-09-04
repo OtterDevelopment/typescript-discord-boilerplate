@@ -32,4 +32,3 @@ manager.on("shardCreate", shard => {
         });
     }
 });
-

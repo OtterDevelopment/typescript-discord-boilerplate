@@ -23,7 +23,7 @@ export default {
         ]
     } as PresenceData,
 
-    hastebin: "https://h.inv.wtf",
+    hastebin: "https://haste.polar.blue",
 
     // To replace these colors please make sure you are providing a
     // hexadecimal color.

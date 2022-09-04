@@ -1,17 +1,12 @@
-import { AutocompleteInteraction } from "discord.js";
-import BetterClient from "../extensions/BetterClient.js";
 import AutoComplete from "./AutoComplete.js";
+import BetterClient from "../extensions/BetterClient.js";
+import BetterAutocompleteInteraction from "../extensions/BetterAutocompleteInteraction.js";
+
+void BetterAutocompleteInteraction;
 
 export default class AutoCompleteHandler {
-    /**
-     * Our client.
-     */
     private readonly client: BetterClient;
 
-    /**
-     * Create our AutoCompleteHandler.
-     * @param client Our client.
-     */
     constructor(client: BetterClient) {
         this.client = client;
     }
@@ -72,7 +67,9 @@ export default class AutoCompleteHandler {
      * Handle the interaction created for this autoComplete to make sure the user and client can execute it.
      * @param interaction The interaction created.
      */
-    public async handleAutoComplete(interaction: AutocompleteInteraction) {
+    public async handleAutoComplete(
+        interaction: BetterAutocompleteInteraction
+    ) {
         const name = [
             interaction.commandName,
             interaction.options.getSubcommandGroup(false) || "",
@@ -94,7 +91,7 @@ export default class AutoCompleteHandler {
      */
     private async runAutoComplete(
         autoComplete: AutoComplete,
-        interaction: AutocompleteInteraction
+        interaction: BetterAutocompleteInteraction
     ) {
         autoComplete
             .run(interaction)
@@ -114,4 +111,3 @@ export default class AutoCompleteHandler {
             });
     }
 }
-

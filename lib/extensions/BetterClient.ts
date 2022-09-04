@@ -2,6 +2,9 @@ import { resolve } from "path";
 import { MongoClient } from "mongodb";
 import * as metrics from "datadog-metrics";
 import { Client, ClientOptions, Collection } from "discord.js";
+import i18next from "i18next";
+import { REST } from "@discordjs/rest";
+import intervalPlural from "i18next-intervalplural-postprocessor";
 import Button from "../classes/Button.js";
 import DropDown from "../classes/DropDown.js";
 import * as Logger from "../classes/Logger.js";
@@ -17,6 +20,7 @@ import AutoCompleteHandler from "../classes/AutoCompleteHandler.js";
 import AutoComplete from "../classes/AutoComplete.js";
 import ApplicationCommandHandler from "../classes/ApplicationCommandHandler.js";
 import ApplicationCommand from "../classes/ApplicationCommand.js";
+import LanguageHandler from "../classes/LanguageHandler.js";
 
 export default class BetterClient extends Client {
     /**
@@ -119,6 +123,12 @@ export default class BetterClient extends Client {
      */
     public cachedStats: CachedStats;
 
+    public i18n: typeof i18next;
+
+    public languageHandler: LanguageHandler;
+
+    public readonly requests: REST;
+
     /**
      * __dirname is not in our version of ECMA, so we make do with a shitty fix.
      */
@@ -174,6 +184,26 @@ export default class BetterClient extends Client {
             channels: 0,
             roles: 0
         };
+
+        this.i18n = i18next;
+        this.languageHandler = new LanguageHandler(this);
+
+        this.loadEvents();
+        this.buttonHandler.loadButtons();
+        this.dropDownHandler.loadDropDowns();
+        this.languageHandler.loadLanguages();
+        this.textCommandHandler.loadTextCommands();
+        this.autoCompleteHandler.loadAutoCompletes();
+        this.applicationCommandHandler.loadApplicationCommands();
+
+        this.i18n.use(intervalPlural).init({
+            fallbackLng: "en-US",
+            resources: {},
+            fallbackNS: "simplemod",
+            lng: "eng-US"
+        });
+
+        this.requests = new REST({}).setToken(process.env.DISCORD_TOKEN);
 
         this.dropDownHandler.loadDropDowns();
         this.buttonHandler.loadButtons();
@@ -278,4 +308,3 @@ export default class BetterClient extends Client {
         return reducedStats || this.cachedStats;
     }
 }
-

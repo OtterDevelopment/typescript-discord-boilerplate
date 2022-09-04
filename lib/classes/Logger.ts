@@ -12,19 +12,12 @@ import { WebhookClient, WebhookMessageOptions } from "discord.js";
 import init from "../utilities/sentry.js";
 
 export class Logger {
-    /**
-     * Our Sentry logger.
-     */
     public readonly sentry;
 
-    /**
-     * The list of webhooks our Logger can use.
-     */
-    private readonly webhooks: Record<string, WebhookClient>;
+    private readonly webhooks = new Map<string, WebhookClient>();
 
     constructor() {
         this.sentry = init();
-        this.webhooks = {};
     }
 
     /**
@@ -96,14 +89,17 @@ export class Logger {
      */
     public async webhookLog(type: string, options: WebhookMessageOptions) {
         if (!type) throw new Error("No webhook type provided!");
-        else if (!this.webhooks[type.toLowerCase()]) {
+        else if (!this.webhooks.has(type.toLowerCase())) {
             const webhookURL = process.env[`${type.toUpperCase()}_HOOK`];
             if (!webhookURL) throw new Error(`Invalid webhook type provided!`);
-            this.webhooks[type.toLowerCase()] = new WebhookClient({
-                url: process.env[`${type.toUpperCase()}_HOOK`]!
-            });
+            this.webhooks.set(
+                type.toLowerCase(),
+                new WebhookClient({
+                    url: process.env[`${type.toUpperCase()}_HOOK`]!
+                })
+            );
         }
-        return this.webhooks[type.toLowerCase()]!.send(options);
+        return this.webhooks.get(type.toLowerCase())!.send(options);
     }
 }
 

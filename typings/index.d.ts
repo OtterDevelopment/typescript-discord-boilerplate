@@ -60,4 +60,3 @@ export interface GenerateTimestampOptions {
     timestamp?: Date | number;
     type?: "t" | "T" | "d" | "D" | "f" | "F" | "R";
 }
-

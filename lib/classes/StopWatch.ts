@@ -11,14 +11,8 @@ export default class Stopwatch {
      */
     public digits: number;
 
-    /**
-     * The start time of this stopwatch
-     */
     private _start: number;
 
-    /**
-     * The end time of this stopwatch
-     */
     private _end?: number;
 
     /**

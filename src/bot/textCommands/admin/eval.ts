@@ -36,7 +36,7 @@ export default class Eval extends TextCommand {
                             : "🆘 JavaScript failed.",
                         description: `Output too long for Discord, view it [here](${await this.client.functions.uploadHaste(
                             result,
-                            "ts"
+                            { type: "ts" }
                         )}).`,
                         fields: [
                             {
@@ -150,4 +150,3 @@ export default class Eval extends TextCommand {
         return asyncTime ? `⏱ ${asyncTime}<${syncTime}>` : `⏱ ${syncTime}`;
     }
 }
-
