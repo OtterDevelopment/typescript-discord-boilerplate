@@ -10,7 +10,7 @@ generator client {
 
 enum CommandType {
     TEXT_COMMAND
-    SLASH_COMMAND
+    APPLICATION_COMMAND
 }
 
 model Cooldown {
@@ -21,4 +21,20 @@ model Cooldown {
 
     @@id([commandName, commandType, userId])
     @@map("command_cooldowns")
+}
+
+model GuildConfig {
+    guildId String @id
+
+    language String?
+
+    @@map("guild_configs")
+}
+
+model UserConfig {
+    userId String @id
+
+    language String?
+
+    @@map("user_configs")
 }

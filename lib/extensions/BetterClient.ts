@@ -3,7 +3,6 @@ import { resolve } from "path";
 import { REST } from "@discordjs/rest";
 import * as metrics from "datadog-metrics";
 import { PrismaClient } from "@prisma/client";
-import { RegExpWorker } from "regexp-worker";
 import { Client, ClientOptions, Collection } from "discord.js";
 import intervalPlural from "i18next-intervalplural-postprocessor";
 import BetterUser from "./BetterUser.js";
@@ -74,8 +73,6 @@ export default class BetterClient extends Client {
     public i18n: typeof i18next;
 
     public languageHandler: LanguageHandler;
-
-    public readonly regexWorker: RegExpWorker;
 
     public readonly requests: REST;
 
@@ -152,8 +149,6 @@ export default class BetterClient extends Client {
             fallbackNS: "simplemod",
             lng: "eng-US"
         });
-
-        this.regexWorker = new RegExpWorker(100);
 
         this.requests = new REST({}).setToken(process.env.DISCORD_TOKEN);
 
@@ -243,28 +238,5 @@ export default class BetterClient extends Client {
         this.cachedStats = reducedStats || this.cachedStats;
         return reducedStats || this.cachedStats;
     }
-
-    /**
-     * Execute regex on a string using a worker.
-     * @param regex The regex to execute.
-     * @param content The content to execute the regex on.
-     * @returns The result of the regex.
-     */
-    public async executeRegex(regex: RegExp, content: string) {
-        try {
-            const result = await this.regexWorker.execRegExp(regex, content);
-            return result.matches.length || regex.global
-                ? result.matches
-                : null;
-        } catch (error: any) {
-            if (error.message !== null && error.elapsedTimeMs !== null)
-                return null;
-            this.logger.error(error);
-            this.logger.sentry.captureWithExtras(error, {
-                "Regular Expression": regex,
-                Content: content
-            });
-            return null;
-        }
-    }
 }
+

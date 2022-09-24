@@ -228,3 +228,4 @@ export default class TextCommand {
      */
     public async run(_message: BetterMessage, _args: string[]): Promise<any> {}
 }
+
