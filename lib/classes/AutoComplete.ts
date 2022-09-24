@@ -1,15 +1,9 @@
-import { AutocompleteInteraction } from "discord.js";
-import BetterClient from "../extensions/BetterClient";
+import BetterClient from "../extensions/BetterClient.js";
+import BetterAutocompleteInteraction from "../extensions/BetterAutocompleteInteraction.js";
 
 export default class AutoComplete {
-    /**
-     * The name of our autoComplete.
-     */
     public readonly name: string[];
 
-    /**
-     * Our client.
-     */
     public readonly client: BetterClient;
 
     /**
@@ -27,6 +21,7 @@ export default class AutoComplete {
      * Run the autocomplete.
      * @param _interaction The interaction that was created.
      */
-    public async run(_interaction: AutocompleteInteraction): Promise<void> {}
+    public async run(
+        _interaction: BetterAutocompleteInteraction
+    ): Promise<void> {}
 }
-

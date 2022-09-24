@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { GatewayDispatchPayload } from "discord-api-types/v10";
 import EventHandler from "../../../lib/classes/EventHandler.js";
 

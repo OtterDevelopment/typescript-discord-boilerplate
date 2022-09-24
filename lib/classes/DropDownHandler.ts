@@ -1,21 +1,15 @@
-import { SelectMenuInteraction } from "discord.js";
-import BetterClient from "../extensions/BetterClient.js";
+import Language from "./Language.js";
 import DropDown from "./DropDown.js";
+import BetterClient from "../extensions/BetterClient.js";
+import BetterSelectMenuInteraction from "../extensions/BetterSelectMenuInteraction.js";
+
+void BetterSelectMenuInteraction;
 
 export default class DropdownHandler {
-    /**
-     * Our client.
-     */
     private readonly client: BetterClient;
 
-    /**
-     * How long a user must wait between each dropdown.
-     */
     private readonly coolDownTime: number;
 
-    /**
-     * Our user's cooldowns.
-     */
     private readonly coolDowns: Set<string>;
 
     /**
@@ -84,7 +78,7 @@ export default class DropdownHandler {
      * Handle the interaction created for this dropdown to make sure the user and client can execute it.
      * @param interaction The interaction created.
      */
-    public async handleDropDown(interaction: SelectMenuInteraction) {
+    public async handleDropDown(interaction: BetterSelectMenuInteraction) {
         const dropDown = this.fetchDropDown(interaction.message!.id);
         if (
             !dropDown ||
@@ -93,7 +87,7 @@ export default class DropdownHandler {
         )
             return;
 
-        const missingPermissions = dropDown.validate(interaction);
+        const missingPermissions = await dropDown.validate(interaction);
         if (missingPermissions)
             return interaction.reply(
                 this.client.functions.generateErrorMessage(missingPermissions)
@@ -118,14 +112,20 @@ export default class DropdownHandler {
      */
     private async runDropDown(
         dropdown: DropDown,
-        interaction: SelectMenuInteraction
+        interaction: BetterSelectMenuInteraction
     ): Promise<any> {
+        const language = (interaction.language ||
+            (await interaction.fetchLanguage())) as Language;
+
         if (this.coolDowns.has(interaction.user.id))
             return interaction.reply(
                 this.client.functions.generateErrorMessage({
-                    title: "Command Cooldown",
-                    description:
-                        "Please wait a second before running this button again!"
+                    title: language.get("COOLDOWN_ON_TYPE_TITLE", {
+                        type: "Dropdown"
+                    }),
+                    description: language.get("COOLDOWN_ON_TYPE_DESCRIPTION", {
+                        type: "dropdown"
+                    })
                 })
             );
 
@@ -146,8 +146,11 @@ export default class DropdownHandler {
                         interaction
                     );
                 const toSend = this.client.functions.generateErrorMessage({
-                    title: "An Error Has Occurred",
-                    description: `An unexpected error was encountered while running this drop down, my developers have already been notified! Feel free to join my support server in the mean time!`,
+                    title: language.get("AN_ERROR_HAS_OCCURRED_TITLE"),
+                    description: language.get(
+                        "AN_ERROR_HAS_OCCURRED_DESCRIPTION_NO_NAME",
+                        { type: "dropdown" }
+                    ),
                     footer: { text: `Sentry Event ID: ${sentryId} ` }
                 });
                 if (interaction.replied) return interaction.followUp(toSend);
@@ -163,4 +166,3 @@ export default class DropdownHandler {
         );
     }
 }
-

@@ -1,123 +1,83 @@
+import i18next from "i18next";
 import { resolve } from "path";
-import { PrismaClient } from "@prisma/client";
+import { REST } from "@discordjs/rest";
 import * as metrics from "datadog-metrics";
+import { PrismaClient } from "@prisma/client";
+import { RegExpWorker } from "regexp-worker";
 import { Client, ClientOptions, Collection } from "discord.js";
+import intervalPlural from "i18next-intervalplural-postprocessor";
+import BetterUser from "./BetterUser.js";
 import Button from "../classes/Button.js";
+import BetterGuild from "./BetterGuild.js";
 import DropDown from "../classes/DropDown.js";
 import * as Logger from "../classes/Logger.js";
 import Config from "../../config/bot.config.js";
+import BetterGuildMember from "./BetterGuild.js";
 import Functions from "../utilities/functions.js";
 import { CachedStats, Stats } from "../../typings";
 import TextCommand from "../classes/TextCommand.js";
 import EventHandler from "../classes/EventHandler.js";
+import AutoComplete from "../classes/AutoComplete.js";
 import ButtonHandler from "../classes/ButtonHandler.js";
 import DropDownHandler from "../classes/DropDownHandler.js";
+import LanguageHandler from "../classes/LanguageHandler.js";
+import ApplicationCommand from "../classes/ApplicationCommand.js";
 import TextCommandHandler from "../classes/TextCommandHandler.js";
 import AutoCompleteHandler from "../classes/AutoCompleteHandler.js";
-import AutoComplete from "../classes/AutoComplete.js";
 import ApplicationCommandHandler from "../classes/ApplicationCommandHandler.js";
-import ApplicationCommand from "../classes/ApplicationCommand.js";
+
+void BetterUser;
+void BetterGuildMember;
+void BetterGuild;
 
 export default class BetterClient extends Client {
-    /**
-     * A set of users that are currently using the bot.
-     */
     public usersUsingBot: Set<string>;
 
-    /**
-     * The config for our client.
-     */
     public readonly config;
 
-    /**
-     * The functions for our client.
-     */
     public readonly functions: Functions;
 
-    /**
-     * The logger for our client.
-     */
     public readonly logger: Logger.Logger;
 
-    /**
-     * The applicationCommandHandler for our client.
-     */
     public readonly applicationCommandHandler: ApplicationCommandHandler;
 
-    /**
-     * The applicationCommands for our client.
-     */
     public applicationCommands: Collection<string, ApplicationCommand>;
 
-    /**
-     * The textCommandHandler for our client.
-     */
     public readonly textCommandHandler: TextCommandHandler;
 
-    /**
-     * The textCommands for our client.
-     */
     public textCommands: Collection<string, TextCommand>;
 
-    /**
-     * The buttonHandler for our client.
-     */
     public readonly buttonHandler: ButtonHandler;
 
-    /**
-     * The buttons for our client.
-     */
     public buttons: Collection<string, Button>;
 
-    /**
-     * The dropDownHandler for our client.
-     */
     public readonly dropDownHandler: DropDownHandler;
 
-    /**
-     * The dropDowns for our client.
-     */
     public dropDowns: Collection<string, DropDown>;
 
-    /**
-     * The autoCompleteHandler for our client.
-     */
     public readonly autoCompleteHandler: AutoCompleteHandler;
 
-    /**
-     * The autoCompletes for our client.
-     */
     public autoCompletes: Collection<string, AutoComplete>;
 
-    /**
-     * The events for our client.
-     */
     public events: Map<string, EventHandler>;
 
-    /**
-     * Our Prisma client.
-     */
     public readonly prisma: PrismaClient;
 
-    /**
-     * Our data dog client.
-     */
     public readonly dataDog: typeof metrics;
 
-    /**
-     * The current version of our client.
-     */
     public readonly version: string;
 
-    /**
-     * Our client's stats.
-     */
     public stats: Stats;
 
-    /**
-     * Our client's cached stats.
-     */
     public cachedStats: CachedStats;
+
+    public i18n: typeof i18next;
+
+    public languageHandler: LanguageHandler;
+
+    public readonly regexWorker: RegExpWorker;
+
+    public readonly requests: REST;
 
     /**
      * __dirname is not in our version of ECMA, so we make do with a shitty fix.
@@ -175,13 +135,27 @@ export default class BetterClient extends Client {
             roles: 0
         };
 
-        this.dropDownHandler.loadDropDowns();
+        this.i18n = i18next;
+        this.languageHandler = new LanguageHandler(this);
+
+        this.loadEvents();
         this.buttonHandler.loadButtons();
-        this.autoCompleteHandler.loadAutoCompletes();
-        this.applicationCommandHandler.loadApplicationCommands();
+        this.dropDownHandler.loadDropDowns();
+        this.languageHandler.loadLanguages();
         this.textCommandHandler.loadTextCommands();
         this.autoCompleteHandler.loadAutoCompletes();
-        this.loadEvents();
+        this.applicationCommandHandler.loadApplicationCommands();
+
+        this.i18n.use(intervalPlural).init({
+            fallbackLng: "en-US",
+            resources: {},
+            fallbackNS: "simplemod",
+            lng: "eng-US"
+        });
+
+        this.regexWorker = new RegExpWorker(100);
+
+        this.requests = new REST({}).setToken(process.env.DISCORD_TOKEN);
 
         // @ts-ignore
         this.dataDog = metrics.default;
@@ -269,5 +243,28 @@ export default class BetterClient extends Client {
         this.cachedStats = reducedStats || this.cachedStats;
         return reducedStats || this.cachedStats;
     }
-}
 
+    /**
+     * Execute regex on a string using a worker.
+     * @param regex The regex to execute.
+     * @param content The content to execute the regex on.
+     * @returns The result of the regex.
+     */
+    public async executeRegex(regex: RegExp, content: string) {
+        try {
+            const result = await this.regexWorker.execRegExp(regex, content);
+            return result.matches.length || regex.global
+                ? result.matches
+                : null;
+        } catch (error: any) {
+            if (error.message !== null && error.elapsedTimeMs !== null)
+                return null;
+            this.logger.error(error);
+            this.logger.sentry.captureWithExtras(error, {
+                "Regular Expression": regex,
+                Content: content
+            });
+            return null;
+        }
+    }
+}

@@ -1,25 +1,18 @@
-import {
-    CommandInteraction,
-    ContextMenuInteraction,
-    Snowflake
-} from "discord.js";
+import { Snowflake } from "discord.js";
+import ApplicationCommand from "./ApplicationCommand.js";
 import BetterClient from "../extensions/BetterClient.js";
-import ApplicationCommand from "./ApplicationCommand";
+import BetterCommandInteraction from "../extensions/BetterCommandInteraction.js";
+import BetterContextMenuInteraction from "../extensions/BetterContextMenuInteraction.js";
+import Language from "./Language.js";
+
+void BetterCommandInteraction;
+void BetterContextMenuInteraction;
 
 export default class ApplicationCommandHandler {
-    /**
-     * Our client.
-     */
     private readonly client: BetterClient;
 
-    /**
-     * How long a user must wait between each application command.
-     */
     private readonly coolDownTime: number;
 
-    /**
-     * Our user's cooldowns.
-     */
     private coolDowns: Set<Snowflake>;
 
     /**
@@ -206,7 +199,7 @@ export default class ApplicationCommandHandler {
      * @param interaction The interaction created.
      */
     public async handleCommand(
-        interaction: CommandInteraction | ContextMenuInteraction
+        interaction: BetterCommandInteraction | BetterContextMenuInteraction
     ) {
         const command = this.fetchCommand(interaction.commandName);
         if (!command) {
@@ -261,10 +254,21 @@ export default class ApplicationCommandHandler {
                             })
                     )
                 );
+
+            const language = (interaction.language ||
+                (await interaction.fetchLanguage())) as Language;
+
             return interaction.reply(
                 this.client.functions.generateErrorMessage({
-                    title: "Non Existent Command",
-                    description: `The command \`${interaction.commandName}\` doesn't exist on this instance of ${this.client.user?.username}, this has already been reported to my developers and the command has been removed!`,
+                    title: language.get("NON_EXISTENT_TITLE"),
+                    description: language.get("NON_EXISTENT_DESCRIPTION", {
+                        type: "command",
+                        name: interaction.commandName,
+                        username:
+                            interaction.guild?.me?.nickname ||
+                            interaction.user.username ||
+                            this.client.config.botName
+                    }),
                     footer: { text: `Sentry Event ID: ${sentryId} ` }
                 })
             );
@@ -301,14 +305,20 @@ export default class ApplicationCommandHandler {
      */
     private async runCommand(
         command: ApplicationCommand,
-        interaction: CommandInteraction | ContextMenuInteraction
+        interaction: BetterCommandInteraction | BetterContextMenuInteraction
     ): Promise<any> {
+        const language = (interaction.language ||
+            (await interaction.fetchLanguage())) as Language;
+
         if (this.coolDowns.has(interaction.user.id))
             return interaction.reply(
                 this.client.functions.generateErrorMessage({
-                    title: "Command Cooldown",
-                    description:
-                        "Please wait a second before running this command again!"
+                    title: language.get("COOLDOWN_ON_TYPE_TITLE", {
+                        type: "Command"
+                    }),
+                    description: language.get("COOLDOWN_ON_TYPE_DESCRIPTION", {
+                        type: "command"
+                    })
                 })
             );
 
@@ -331,8 +341,11 @@ export default class ApplicationCommandHandler {
                         interaction
                     );
                 const toSend = this.client.functions.generateErrorMessage({
-                    title: "An Error Has Occurred",
-                    description: `An unexpected error was encountered while running \`${interaction.commandName}\`, my developers have already been notified! Feel free to join my support server in the mean time!`,
+                    title: language.get("AN_ERROR_HAS_OCCURRED_TITLE"),
+                    description: language.get(
+                        "AN_ERROR_HAS_OCCURRED_DESCRIPTION",
+                        { type: "command", name: command.name }
+                    ),
                     footer: { text: `Sentry Event ID: ${sentryId} ` }
                 });
                 if (interaction.replied) return interaction.followUp(toSend);

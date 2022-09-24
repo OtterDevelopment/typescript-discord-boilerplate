@@ -30,6 +30,9 @@ export default class Ready extends EventHandler {
         );
         this.client.dataDog.gauge("guilds", stats.guilds);
         this.client.dataDog.gauge("users", stats.users);
+
+        this.client.languageHandler.languages.forEach(language =>
+            language.init()
+        );
     }
 }
-

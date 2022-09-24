@@ -1,58 +1,28 @@
-import { format } from "@lukeed/ms";
 import { MessageEmbedOptions, PermissionString, Snowflake } from "discord.js";
 import { TextCommandOptions } from "../../typings";
-import BetterMessage from "../extensions/BetterMessage";
+import BetterMessage from "../extensions/BetterMessage.js";
 import BetterClient from "../extensions/BetterClient.js";
+import Language from "./Language";
 
 export default class TextCommand {
-    /**
-     * The name for our text command.
-     */
     public readonly name: string;
 
-    /**
-     * The description for our text command.
-     */
     public readonly description: string;
 
-    /**
-     * The aliases for this text command.
-     */
     public readonly aliases: string[];
 
-    /**
-     * The permissions a user would require to execute this text command.
-     */
     public readonly permissions: PermissionString[];
 
-    /**
-     * The permissions the client requires to execute this text command.
-     */
     private readonly clientPermissions: PermissionString[];
 
-    /**
-     * Whether this text command is only for developers.
-     */
     private readonly devOnly: boolean;
 
-    /**
-     * Whether this text command is only to be used in guilds.
-     */
     private readonly guildOnly: boolean;
 
-    /**
-     * Whether this slash command is only to be used by guild owners.
-     */
     private readonly ownerOnly: boolean;
 
-    /**
-     * The cooldown for this slash command.
-     */
     public readonly cooldown: number;
 
-    /**
-     * Our client.
-     */
     public readonly client: BetterClient;
 
     /**
@@ -117,42 +87,60 @@ export default class TextCommand {
     public async validate(
         message: BetterMessage
     ): Promise<{ title: string; description: string } | null> {
+        const language = (message.language ||
+            (await message.fetchLanguage())) as Language;
+
         if (this.guildOnly && !message.inGuild())
             return {
-                title: "Missing Permissions",
-                description: "This command can only be used in guilds."
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_GUILD_ONLY")
             };
         else if (this.ownerOnly && message.guild?.ownerId !== message.author.id)
             return {
-                title: "Missing Permissions",
-                description:
-                    "This command can only be ran by the owner of this guild!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY")
             };
         else if (
             this.devOnly &&
             !this.client.functions.isAdmin(message.author.id)
         )
             return {
-                title: "Missing Permissions",
-                description: "This command can only be used by my developers!"
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get("MISSING_PERMISSIONS_DEVELOPER_ONLY")
             };
         else if (
             message.guild &&
             this.permissions.length &&
-            !message.member?.permissions.has(this.permissions)
+            !message.member?.permissions?.has(this.permissions)
         )
             return {
-                title: "Missing Permissions",
-                description: `You need the ${this.permissions
-                    .map(
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    this.permissions.filter(
                         permission =>
-                            `**${this.client.functions.getPermissionName(
-                                permission
-                            )}**`
-                    )
-                    .join(", ")} permission${
-                    this.permissions.length > 1 ? "s" : ""
-                } to run this command.`
+                            !message.member?.permissions?.has(permission)
+                    ).length === 1
+                        ? "MISSING_PERMISSIONS_USER_PERMISSIONS_ONE"
+                        : "MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER",
+                    {
+                        permissions: this.permissions
+                            .filter(
+                                permission =>
+                                    !message.member?.permissions?.has(
+                                        permission
+                                    )
+                            )
+                            .map(
+                                permission =>
+                                    `**${this.client.functions.getPermissionName(
+                                        permission,
+                                        language
+                                    )}**`
+                            )
+                            .join(", "),
+                        type: "command"
+                    }
+                )
             };
         else if (
             message.guild &&
@@ -160,24 +148,40 @@ export default class TextCommand {
             !message.guild?.me?.permissions.has(this.clientPermissions)
         )
             return {
-                title: "Missing Permissions",
-                description: `I need the ${this.clientPermissions
-                    .map(
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    this.permissions.filter(
                         permission =>
-                            `**${this.client.functions.getPermissionName(
-                                permission
-                            )}**`
-                    )
-                    .join(", ")} permission${
-                    this.clientPermissions.length > 1 ? "s" : ""
-                } to run this command.`
+                            !message.guild?.me?.permissions?.has(permission)
+                    ).length === 1
+                        ? "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE"
+                        : "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_OTHER",
+                    {
+                        permissions: this.permissions
+                            .filter(
+                                permission =>
+                                    !message.guild?.me?.permissions?.has(
+                                        permission
+                                    )
+                            )
+                            .map(
+                                permission =>
+                                    `**${this.client.functions.getPermissionName(
+                                        permission,
+                                        language
+                                    )}**`
+                            )
+                            .join(", "),
+                        type: "command"
+                    }
+                )
             };
         else if (this.cooldown) {
             const cooldownItem = await this.client.prisma.cooldown.findUnique({
                 where: {
                     commandName_commandType_userId: {
                         commandName: this.name.toLowerCase(),
-                        commandType: "SLASH_COMMAND",
+                        commandType: "APPLICATION_COMMAND",
                         userId: message.author.id
                     }
                 }
@@ -188,13 +192,20 @@ export default class TextCommand {
                     this.cooldown
                 )
                     return {
-                        title: "Command On Cooldown",
-                        description: `This command is still on cooldown for another ${format(
-                            cooldownItem.createdAt.valueOf() +
-                                this.cooldown -
-                                Date.now(),
-                            true
-                        )}!`
+                        title: language.get("TYPE_ON_COOLDOWN_TITLE"),
+                        description: language.get(
+                            "TYPE_ON_COOLDOWN_DESCRIPTION",
+                            {
+                                type: "command",
+                                formattedTime: this.client.functions.format(
+                                    cooldownItem.createdAt.valueOf() +
+                                        this.cooldown -
+                                        Date.now(),
+                                    true,
+                                    language
+                                )
+                            }
+                        )
                     };
         }
         return null;
@@ -217,4 +228,3 @@ export default class TextCommand {
      */
     public async run(_message: BetterMessage, _args: string[]): Promise<any> {}
 }
-
