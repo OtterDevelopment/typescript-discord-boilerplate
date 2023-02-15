@@ -1,20 +1,21 @@
-import { MessageEmbed } from "discord.js";
 import { inspect } from "util";
+import { Message } from "discord.js";
+import Type from "../../../../lib/classes/Type.js";
+import Language from "../../../../lib/classes/Language.js";
 import StopWatch from "../../../../lib/classes/StopWatch.js";
 import TextCommand from "../../../../lib/classes/TextCommand.js";
-import Type from "../../../../lib/classes/Type.js";
-import BetterClient from "../../../../lib/extensions/BetterClient.js";
-import BetterMessage from "../../../../lib/extensions/BetterMessage.js";
+import ExtendedClient from "../../../../lib/extensions/ExtendedClient.js";
 
 export default class Eval extends TextCommand {
-    constructor(client: BetterClient) {
-        super("eval", client, {
+    constructor(client: ExtendedClient) {
+        super(client, {
+            name: "eval",
             description: "Evaluates arbitrary JavaScript code.",
             devOnly: true
         });
     }
 
-    override async run(message: BetterMessage, args: string[]) {
+    override async run(message: Message, _language: Language, args: string[]) {
         this.client.logger.info(
             `${message.author.tag} ran eval in ${message.guild?.name} ${
                 message.guild?.id
@@ -30,11 +31,11 @@ export default class Eval extends TextCommand {
         if (result.length > 4087)
             return message.reply({
                 embeds: [
-                    new MessageEmbed({
+                    {
                         title: success
                             ? "🆗 Evaluated successfully."
                             : "🆘 JavaScript failed.",
-                        description: `Output too long for Discord, view it [here](${await this.client.functions.uploadHaste(
+                        description: `Output too long for Discord, view it [here](${await this.client.functions.uploadToHastebin(
                             result,
                             { type: "ts" }
                         )}).`,
@@ -44,19 +45,16 @@ export default class Eval extends TextCommand {
                                 value: `\`\`\`ts\n${type}\`\`\`\n${time}`
                             }
                         ],
-                        color: parseInt(
-                            success
-                                ? this.client.config.colors.success
-                                : this.client.config.colors.error,
-                            16
-                        )
-                    })
+                        color: success
+                            ? this.client.config.colors.success
+                            : this.client.config.colors.error
+                    }
                 ]
             });
 
         return message.reply({
             embeds: [
-                new MessageEmbed({
+                {
                     title: success
                         ? "🆗 Evaluated successfully."
                         : "🆘 JavaScript failed.",
@@ -67,18 +65,15 @@ export default class Eval extends TextCommand {
                             value: `\`\`\`ts\n${type}\`\`\`\n${time}`
                         }
                     ],
-                    color: parseInt(
-                        success
-                            ? this.client.config.colors.success
-                            : this.client.config.colors.error,
-                        16
-                    )
-                })
+                    color: success
+                        ? this.client.config.colors.success
+                        : this.client.config.colors.error
+                }
             ]
         });
     }
 
-    private async eval(message: BetterMessage, code: string) {
+    private async eval(message: Message, code: string) {
         code = code.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
         const stopwatch = new StopWatch();
         let success;
@@ -126,15 +121,7 @@ export default class Eval extends TextCommand {
      * @returns The parsed content.
      */
     private parseContent(content: string): string {
-        return (
-            content
-                .replace(this.client.token || "", "[ T O K E N ]")
-                // @ts-ignore
-                .replace(
-                    this.client.config.dataDog.apiKey || "",
-                    "[ D A T A D O G A P I K E Y ]"
-                )
-        );
+        return content.replace(this.client.token || "", "[ T O K E N ]");
     }
 
     private formatTime(syncTime: string, asyncTime?: string) {

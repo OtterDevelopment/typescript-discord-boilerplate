@@ -1,218 +1,232 @@
 import {
+    APIEmbed,
+    ApplicationCommandData,
     ApplicationCommandType,
-    PermissionString,
-    ContextMenuInteraction,
-    MessageEmbedOptions,
-    Snowflake
+    CommandInteraction,
+    PermissionResolvable,
+    PermissionsBitField
 } from "discord.js";
-import BetterClient from "../extensions/BetterClient.js";
-import { ApplicationCommandOptions } from "../../typings";
-import BetterCommandInteraction from "../extensions/BetterCommandInteraction.js";
-import BetterContextMenuInteraction from "../extensions/BetterContextMenuInteraction.js";
 import Language from "./Language.js";
+import ExtendedClient from "../extensions/ExtendedClient.js";
 
 export default class ApplicationCommand {
+    /** Our extended client. */
+    public readonly client: ExtendedClient;
+
+    /** The name for this application command. */
     public readonly name: string;
 
-    public readonly description?: string;
-
+    /** The type of application command. */
     public readonly type: ApplicationCommandType;
 
-    public readonly options: ApplicationCommandOptions;
+    /** The options for this application command. */
+    public readonly options: ApplicationCommandData;
 
-    private readonly permissions: PermissionString[];
+    /** The permissions the user requires to run this application command. */
+    private readonly permissions: PermissionsBitField;
 
-    private readonly clientPermissions: PermissionString[];
+    /** The permissions the client requires to run this application command. */
+    private readonly clientPermissions: PermissionsBitField;
 
+    /** Whether or not this application command can only be used by developers. */
     private readonly devOnly: boolean;
 
-    private readonly guildOnly: boolean;
-
+    /** Whether or not this application command can only be run by the guild owner. */
     private readonly ownerOnly: boolean;
 
+    /** The cooldown on this application command. */
     public readonly cooldown: number;
 
-    public readonly client: BetterClient;
+    /** The guilds this application command should be loaded into, if this value is defined, this command will only be added to these guilds and not globally. */
+    public readonly guilds: string[];
 
     /**
-     * Create our application commands.
-     * @param name The name of our application command.
-     * @param client Our client.
-     * @param options The options for our application command.
+     * Create a new application command.
+     * @param client Our extended client.
+     * @param options The options for this application command.
      */
     constructor(
-        name: string,
-        client: BetterClient,
-        options: ApplicationCommandOptions
+        client: ExtendedClient,
+        options: {
+            options: ApplicationCommandData;
+            permissions?: PermissionResolvable[];
+            clientPermissions?: PermissionResolvable[];
+            devOnly?: boolean;
+            ownerOnly?: boolean;
+            cooldown?: number;
+            guilds?: string[];
+        }
     ) {
-        this.name = name;
-        this.description = options.description;
-        this.options = options;
-        this.type = options.type || "CHAT_INPUT";
+        this.client = client;
 
-        this.permissions = options.permissions || [];
-        this.clientPermissions = client.config.requiredPermissions.concat(
-            options.clientPermissions || []
+        this.type = options.options.type!;
+        this.options = options.options;
+        this.name = options.options.name;
+
+        this.permissions = new PermissionsBitField(
+            options.options.defaultMemberPermissions || []
+        );
+        this.clientPermissions = new PermissionsBitField(
+            client.config.requiredPermissions.concat(
+                options.clientPermissions || []
+            )
         );
 
         this.devOnly = options.devOnly || false;
-        this.guildOnly = options.guildOnly || false;
         this.ownerOnly = options.ownerOnly || false;
 
         this.cooldown = options.cooldown || 0;
 
-        this.client = client;
+        this.guilds = options.guilds || [];
     }
 
     /**
-     * Apply the cooldown for this slash command.
-     * @param userId The userId to apply the cooldown on.
-     * @returns True or false if the cooldown is actually applied.
+     * Apply a cooldown to a user.
+     * @param userId The userID to apply the cooldown on.
+     * @param cooldown The cooldown to apply, if not provided the default cooldown for this application command will be used.
+     * @returns True or False if the cooldown was applied.
      */
-    public async applyCooldown(userId: Snowflake): Promise<boolean> {
-        if (this.cooldown)
-            return !!(await this.client.prisma.cooldown.upsert({
-                where: {
-                    commandName_commandType_userId: {
-                        commandName: this.name.toLowerCase(),
+    public async applyCooldown(userId: string, cooldown?: number) {
+        if (this.cooldown) {
+            const expiresAt = new Date(
+                Date.now() + (cooldown || this.cooldown)
+            );
+
+            return this.client.prisma.cooldown
+                .upsert({
+                    where: {
+                        commandName_commandType_userId: {
+                            commandName: this.name,
+                            commandType: "APPLICATION_COMMAND",
+                            userId
+                        }
+                    },
+                    update: {
+                        expiresAt
+                    },
+                    create: {
+                        commandName: this.name,
                         commandType: "APPLICATION_COMMAND",
+                        expiresAt,
                         userId
                     }
-                },
-                update: { createdAt: new Date() },
-                create: {
-                    commandName: this.name.toLowerCase(),
-                    commandType: "APPLICATION_COMMAND",
-                    userId
-                }
-            }));
+                })
+                .then(Boolean);
+        }
+
         return false;
     }
 
     /**
-     * Validate this interaction to make sure this application command can be executed.
-     * @param interaction The interaction that was created.
-     * @returns Options for the embed to send or null if the application command is valid.
+     * Validate that the interaction provided is valid.
+     * @param interaction The interaction to validate.
+     * @param language The language to use when replying to the interaction.
+     * @returns An APIEmbed if the interaction is invalid, null if the interaction is valid.
      */
     public async validate(
-        interaction: BetterCommandInteraction | BetterContextMenuInteraction
-    ): Promise<MessageEmbedOptions | null> {
-        const language = (interaction.language ||
-            (await interaction.fetchLanguage())) as Language;
+        interaction: CommandInteraction,
+        language: Language
+    ): Promise<APIEmbed | null> {
+        const type =
+            this.type === ApplicationCommandType.ChatInput
+                ? "slash command"
+                : "context menu";
 
-        if (this.guildOnly && !interaction.inGuild())
-            return {
-                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_GUILD_ONLY")
-            };
-        else if (
+        if (
             this.ownerOnly &&
             interaction.guild?.ownerId !== interaction.user.id
         )
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY")
+                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY", {
+                    type
+                })
             };
         else if (
             this.devOnly &&
-            !this.client.functions.isAdmin(interaction.user.id)
-        )
-            return {
-                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_DEVELOPER_ONLY")
-            };
-        else if (
-            interaction.guild &&
-            this.permissions.length &&
-            !interaction.memberPermissions?.has(this.permissions)
+            !this.client.config.admins.includes(interaction.user.id)
         )
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
                 description: language.get(
-                    this.permissions.filter(
-                        permission =>
-                            !interaction.memberPermissions?.has(permission)
-                    ).length === 1
+                    "MISSING_PERMISSIONS_DEVELOPER_ONLY",
+                    {
+                        type
+                    }
+                )
+            };
+        else if (
+            interaction.inGuild() &&
+            this.permissions?.toArray().length &&
+            !interaction.memberPermissions.has(this.permissions)
+        ) {
+            const missingPermissions = this.permissions
+                .toArray()
+                .filter(
+                    permission => !interaction.memberPermissions.has(permission)
+                );
+
+            return {
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    missingPermissions.length === 1
                         ? "MISSING_PERMISSIONS_USER_PERMISSIONS_ONE"
                         : "MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER",
                     {
-                        permissions: this.permissions
-                            .filter(
-                                permission =>
-                                    !interaction.memberPermissions?.has(
-                                        permission
-                                    )
-                            )
-                            .map(
-                                permission =>
-                                    `**${this.client.functions.getPermissionName(
-                                        permission,
-                                        language
-                                    )}**`
-                            )
-                            .join(", "),
-                        type: "command"
+                        type,
+                        missingPermissions
                     }
                 )
             };
-        else if (
-            interaction.guild &&
-            this.clientPermissions.length &&
-            !interaction.guild?.me?.permissions.has(this.clientPermissions)
-        )
+        } else if (
+            interaction.inGuild() &&
+            this.clientPermissions.toArray().length &&
+            interaction.guild!.members.me?.permissions.has(
+                this.clientPermissions
+            ) === false
+        ) {
+            const missingPermissions = this.clientPermissions
+                .toArray()
+                .filter(
+                    permission =>
+                        interaction.guild!.members.me?.permissions.has(
+                            permission
+                        ) === false
+                );
+
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
                 description: language.get(
-                    this.permissions.filter(
-                        permission =>
-                            !interaction.guild?.me?.permissions?.has(permission)
-                    ).length === 1
+                    missingPermissions.length === 1
                         ? "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE"
                         : "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_OTHER",
                     {
-                        permissions: this.permissions
-                            .filter(
-                                permission =>
-                                    !interaction.guild?.me?.permissions?.has(
-                                        permission
-                                    )
-                            )
-                            .map(
-                                permission =>
-                                    `**${this.client.functions.getPermissionName(
-                                        permission,
-                                        language
-                                    )}**`
-                            )
-                            .join(", "),
-                        type: "command"
+                        type,
+                        missingPermissions
                     }
                 )
             };
-        else if (this.cooldown) {
+        } else if (this.cooldown) {
             const cooldownItem = await this.client.prisma.cooldown.findUnique({
                 where: {
                     commandName_commandType_userId: {
-                        commandName: this.name.toLowerCase(),
+                        commandName: this.name,
                         commandType: "APPLICATION_COMMAND",
                         userId: interaction.user.id
                     }
                 }
             });
+
             if (cooldownItem)
-                if (
-                    Date.now() - cooldownItem.createdAt.valueOf() <
-                    this.cooldown
-                )
+                if (Date.now() > cooldownItem.expiresAt.valueOf())
                     return {
                         title: language.get("TYPE_ON_COOLDOWN_TITLE"),
                         description: language.get(
                             "TYPE_ON_COOLDOWN_DESCRIPTION",
                             {
-                                type: "command",
+                                type,
                                 formattedTime: this.client.functions.format(
-                                    cooldownItem.createdAt.valueOf() +
-                                        this.cooldown -
+                                    cooldownItem.expiresAt.valueOf() -
                                         Date.now(),
                                     true,
                                     language
@@ -221,24 +235,30 @@ export default class ApplicationCommand {
                         )
                     };
         }
+
         return null;
     }
 
     /**
-     * This function must be evaluated to true or else this application command will not be executed.
-     * @param _interaction The interaction that was created.
+     * Pre-check the provided interaction after validating it.
+     * @param _interaction The interaction to pre-check.
+     * @param _language The language to use when replying to the interaction.
+     * @returns A tuple containing a boolean and an APIEmbed if the interaction is invalid, a boolean if the interaction is valid.
      */
     public async preCheck(
-        _interaction: BetterCommandInteraction | ContextMenuInteraction
-    ): Promise<[boolean, MessageEmbedOptions?]> {
+        _interaction: CommandInteraction,
+        _language: Language
+    ): Promise<[boolean, APIEmbed?]> {
         return [true];
     }
 
     /**
      * Run this application command.
-     * @param _interaction The interaction that was created.
+     * @param _interaction The interaction to run this command on.
+     * @param _language The language to use when replying to the interaction.
      */
     public async run(
-        _interaction: BetterCommandInteraction | ContextMenuInteraction
+        _interaction: CommandInteraction,
+        _language: Language
     ): Promise<any> {}
 }

@@ -1,10 +1,14 @@
+import { Message } from "discord.js";
 import EventHandler from "../../../lib/classes/EventHandler.js";
-import BetterMessage from "../../../lib/extensions/BetterMessage.js";
 
 export default class MessageCreate extends EventHandler {
-    override async run(message: BetterMessage) {
-        this.client.dataDog.increment("messagesSeen");
+    /**
+     * Handle the creation of a message.
+     * @param message The message that was created.
+     */
+    public override async run(message: Message) {
         if (message.author.bot) return;
-        return this.client.textCommandHandler.handleCommand(message);
+
+        return this.client.textCommandHandler.handleTextCommand(message);
     }
 }

@@ -5,7 +5,8 @@ datasource db {
 }
 
 generator client {
-    provider = "prisma-client-js"
+    provider   = "prisma-client-js"
+    engineType = "binary"
 }
 
 enum CommandType {
@@ -14,27 +15,20 @@ enum CommandType {
 }
 
 model Cooldown {
-    commandName String
-    commandType CommandType
     userId      String
-    createdAt   DateTime    @default(now())
+    commandName String
+
+    expiresAt DateTime
+
+    commandType CommandType
 
     @@id([commandName, commandType, userId])
     @@map("command_cooldowns")
 }
 
-model GuildConfig {
-    guildId String @id
+model UserLanguage {
+    userId     String @id
+    languageId String
 
-    language String?
-
-    @@map("guild_configs")
-}
-
-model UserConfig {
-    userId String @id
-
-    language String?
-
-    @@map("user_configs")
+    @@map("user_languages")
 }

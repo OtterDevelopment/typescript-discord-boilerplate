@@ -9,18 +9,8 @@
         "outDir": "dist",
 
         "strict": true,
-        "alwaysStrict": true,
-        "strictFunctionTypes": true,
-        "strictNullChecks": true,
-        "strictPropertyInitialization": true,
 
         "forceConsistentCasingInFileNames": true,
-        "noImplicitAny": true,
-        "noImplicitThis": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noImplicitOverride": true,
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
 

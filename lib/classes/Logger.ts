@@ -1,33 +1,39 @@
 /* eslint-disable no-console */
+
+import { WebhookClient, WebhookCreateMessageOptions } from "discord.js";
 import {
     bgGreenBright,
     bgMagentaBright,
     bgRedBright,
     bgYellowBright,
-    blackBright,
     bold
 } from "colorette";
 import { format } from "util";
-import { WebhookClient, WebhookMessageOptions } from "discord.js";
 import init from "../utilities/sentry.js";
 
 export class Logger {
+    /** Our Sentry client. */
     public readonly sentry;
 
-    private readonly webhooks = new Map<string, WebhookClient>();
+    /** A Map<string, WebhookClient> whose key value pair correlates to the type of log we want and the WebhookClient for the log. */
+    private readonly webhooks: Map<string, WebhookClient>;
 
+    /**
+     * Create our logger.
+     */
     constructor() {
         this.sentry = init();
+        this.webhooks = new Map();
     }
 
     /**
      * Get the current timestamp.
-     * @returns The current timestamp in the format of [DD/MM/YYYY @ HH:mm:SS].
+     * @returns The current timestamp in the format of MM/DD/YYYY @ HH:mm:SS.
      */
-    private static get timestamp(): string {
-        const now = new Date();
-        const [year, month, day] = now.toISOString().substr(0, 10).split("-");
-        return `${day}/${month}/${year} @ ${now.toISOString().substr(11, 8)}`;
+    public get timestamp(): string {
+        const nowISOString = new Date().toISOString();
+        const [year, month, day] = nowISOString.substr(0, 10).split("-");
+        return `${month}/${day}/${year} @ ${nowISOString.substr(11, 8)}`;
     }
 
     /**
@@ -36,69 +42,76 @@ export class Logger {
      */
     public debug(...args: string | any): void {
         console.log(
-            bold(bgMagentaBright(`[${Logger.timestamp}]`)),
+            bold(bgMagentaBright(`[${this.timestamp}]`)),
             bold(format(...args))
         );
     }
 
     /**
-     * Log out a debug statement.
+     * Log out an info statement.
      * @param args The arguments to log out.
      */
     public info(...args: string | any): void {
         console.log(
-            bold(bgGreenBright(blackBright(`[${Logger.timestamp}]`))),
+            bold(bgGreenBright(`[${this.timestamp}]`)),
             bold(format(...args))
         );
     }
 
     /**
-     * Log out a debug statement.
+     * Log out a warn statement.
      * @param args The arguments to log out.
      */
     public warn(...args: string | any): void {
         console.log(
-            bold(bgYellowBright(blackBright(`[${Logger.timestamp}]`))),
+            bold(bgYellowBright(`[${this.timestamp}]`)),
             bold(format(...args))
         );
     }
 
     /**
      * Log out an error statement.
-     * @param error The error to log out.
-     * @param args TBe arguments to log out.
+     * @param args The arguments to log out.
      */
     public error(error: any | null, ...args: string | any): void {
         if (error)
             console.log(
-                bold(bgRedBright(`[${Logger.timestamp}]`)),
+                bold(bgRedBright(`[${this.timestamp}]`)),
                 error,
                 bold(format(...args))
             );
         else
             console.log(
-                bold(bgRedBright(`[${Logger.timestamp}]`)),
+                bold(bgRedBright(`[${this.timestamp}]`)),
                 bold(format(...args))
             );
     }
 
     /**
      * Log a message to Discord through a webhook.
-     * @param type The type to log out, make sure that the webhook is provided in your .env file in the format as ${TYPE}_HOOK=...
-     * @param options The options for the webhook you want to send.
+     * @param type The webhook type to log out to, make sure that the webhook provided in your .env file is in the format ${TYPE}_HOOK=...
+     * @param options The options for the message we want to send with the webhook.
+     * @returns The message that was sent.
      */
-    public async webhookLog(type: string, options: WebhookMessageOptions) {
-        if (!type) throw new Error("No webhook type provided!");
-        else if (!this.webhooks.has(type.toLowerCase())) {
+    public async webhookLog(
+        type: string,
+        options: WebhookCreateMessageOptions
+    ) {
+        if (!type) throw new Error("No webhook type has been provided!");
+        else if (!this.webhooks.get(type.toLowerCase())) {
             const webhookURL = process.env[`${type.toUpperCase()}_HOOK`];
-            if (!webhookURL) throw new Error(`Invalid webhook type provided!`);
+            if (!webhookURL)
+                throw new Error(
+                    `No webhook URL has been provided for ${type}!`
+                );
+
             this.webhooks.set(
                 type.toLowerCase(),
-                new WebhookClient({
-                    url: process.env[`${type.toUpperCase()}_HOOK`]!
-                })
+                new WebhookClient({ url: webhookURL })
             );
         }
+
+        // We use ! here as if the webhook doesn't exist, we throw an error above.
         return this.webhooks.get(type.toLowerCase())!.send(options);
     }
 }

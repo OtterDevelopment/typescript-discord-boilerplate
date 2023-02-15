@@ -1,5 +1,6 @@
+.DS_STORE
+
 # Logs
-logs
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -69,6 +70,7 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variables file
+.env
 .env.prod
 .env.dev
 .env.test

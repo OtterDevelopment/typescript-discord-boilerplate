@@ -1,19 +1,23 @@
 import { TOptions } from "i18next";
-import BetterClient from "../extensions/BetterClient.js";
-import * as enUS from "../../languages/en-US.json" assert { type: "json" };
 import { LanguageValues } from "../../typings/language";
+import ExtendedClient from "../extensions/ExtendedClient.js";
+import * as enUS from "../../languages/en-US.json" assert { type: "json" };
 
 type LanguageKeys = keyof typeof enUS;
 export type LanguageOptions = Partial<typeof enUS>;
 
 export default class Language {
-    public readonly client: BetterClient;
+    /** Our extended client */
+    public readonly client: ExtendedClient;
 
+    /** The ID of our language. */
     public readonly id: string;
 
+    /** Whether or not this language is enabled. */
     public enabled: boolean;
 
-    private language: LanguageOptions;
+    /** All of the key value pairs for our language. */
+    public language: LanguageOptions;
 
     /**
      * Create our Language class.
@@ -22,7 +26,7 @@ export default class Language {
      * @param options The options for our language.
      */
     constructor(
-        client: BetterClient,
+        client: ExtendedClient,
         id: string,
         options: { enabled: boolean; language?: LanguageOptions } = {
             enabled: true
@@ -32,7 +36,8 @@ export default class Language {
         this.client = client;
 
         this.enabled = options.enabled;
-        this.language = options.language || enUS;
+        // @ts-ignore
+        this.language = options.language || enUS.default;
     }
 
     /**
@@ -41,7 +46,7 @@ export default class Language {
     public init() {
         this.client.i18n.addResourceBundle(
             this.id,
-            "simplemod",
+            this.client.config.botName.toLowerCase().split(" ").join("_"),
             this.language,
             true,
             true
@@ -54,16 +59,18 @@ export default class Language {
      * @returns Whether the key exists.
      */
     public has(key: string) {
-        if (!this.enabled)
-            return this.client.i18n.t(key, { lng: "en-US" }) !== key;
-        return this.client.i18n.t(key, { lng: this.id }) !== key;
+        return (
+            this.client.i18n.t(key, {
+                lng: this.enabled ? this.id : "en-US"
+            }) !== key
+        );
     }
 
     /**
-     * Get a key.
-     * @param key The key to get.
+     * Translate a key.
+     * @param key The key to translate.
      * @param args The arguments for the key.
-     * @returns The key if it exists.
+     * @returns The translated key.
      */
     public get<K extends LanguageKeys, O extends LanguageValues[K]>(
         key: K,
@@ -71,6 +78,7 @@ export default class Language {
     ) {
         if (args && !("interpolation" in args))
             args.interpolation = { escapeValue: false };
+
         if (!this.enabled) return this.client.i18n.t(key, { ...args });
         else if (!this.has(key))
             return `"${key} has not been localized for any languages yet."`;
