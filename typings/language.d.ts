@@ -2,15 +2,16 @@ export interface LanguageValues {
     LANGUAGE_ENABLED: {};
     LANGUAGE_ID: {};
     LANGUAGE_NAME: {};
-    ADMINISTRATOR: {};
     CREATE_INSTANT_INVITE: {};
     KICK_MEMBERS: {};
     BAN_MEMBERS: {};
+    ADMINISTRATOR: {};
     MANAGE_CHANNELS: {};
     MANAGE_GUILD: {};
     ADD_REACTIONS: {};
     VIEW_AUDIT_LOG: {};
     PRIORITY_SPEAKER: {};
+    STREAM: {};
     VIEW_CHANNEL: {};
     SEND_MESSAGES: {};
     SEND_TTS_MESSAGES: {};
@@ -20,10 +21,9 @@ export interface LanguageValues {
     READ_MESSAGE_HISTORY: {};
     MENTION_EVERYONE: {};
     USE_EXTERNAL_EMOJIS: {};
-    USE_EXTERNAL_STICKERS: {};
-    SPEAK: {};
+    VIEW_GUILD_INSIGHTS: {};
     CONNECT: {};
-    STREAM: {};
+    SPEAK: {};
     MUTE_MEMBERS: {};
     DEAFEN_MEMBERS: {};
     MOVE_MEMBERS: {};
@@ -32,17 +32,16 @@ export interface LanguageValues {
     MANAGE_NICKNAMES: {};
     MANAGE_ROLES: {};
     MANAGE_WEBHOOKS: {};
-    VIEW_GUILD_INSIGHTS: {};
+    MANAGE_EMOJIS_AND_STICKERS: {};
     USE_APPLICATION_COMMANDS: {};
     REQUEST_TO_SPEAK: {};
+    MANAGE_EVENTS: {};
     MANAGE_THREADS: {};
-    USE_PUBLIC_THREADS: {};
-    USE_PRIVATE_THREADS: {};
     CREATE_PUBLIC_THREADS: {};
     CREATE_PRIVATE_THREADS: {};
-    MANAGE_EMOJIS_AND_STICKERS: {};
+    USE_EXTERNAL_STICKERS: {};
     SEND_MESSAGES_IN_THREADS: {};
-    START_EMBEDDED_ACTIVITIES: {};
+    USE_EMBEDDED_ACTIVITIES: {};
     MODERATE_MEMBERS: {};
     PARSE_REGEX: {};
     MS_OTHER: {};
@@ -65,11 +64,20 @@ export interface LanguageValues {
     MISSING_PERMISSIONS_GUILD_ONLY: { type: any };
     MISSING_PERMISSIONS_OWNER_ONLY: { type: any };
     MISSING_PERMISSIONS_DEVELOPER_ONLY: { type: any };
-    MISSING_PERMISSIONS_USER_PERMISSIONS_ONE: { permissions: any; type: any };
-    MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER: { permissions: any; type: any };
-    MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE: { permissions: any; type: any };
+    MISSING_PERMISSIONS_USER_PERMISSIONS_ONE: {
+        missingPermissions: any;
+        type: any;
+    };
+    MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER: {
+        missingPermissions: any;
+        type: any;
+    };
+    MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE: {
+        missingPermissions: any;
+        type: any;
+    };
     MISSING_PERMISSIONS_CLIENT_PERMISSIONS_OTHER: {
-        permissions: any;
+        missingPermissions: any;
         type: any;
     };
     TYPE_ON_COOLDOWN_TITLE: { type: any };
@@ -87,4 +95,8 @@ export interface LanguageValues {
     LANGUAGE_SET_DESCRIPTION: { language: any };
     INVALID_INTERACTION_TITLE: {};
     INVALID_INTERACTION_DESCRIPTION: {};
+    ACTION_LOG_SET_TITLE: {};
+    ACTION_LOG_SET_DESCRIPTION: { actionLogChannel: any };
+    ACTION_LOG_REMOVED_TITLE: {};
+    ACTION_LOG_REMOVED_DESCRIPTION: {};
 }

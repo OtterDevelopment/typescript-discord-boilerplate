@@ -1,193 +1,205 @@
-import { MessageEmbedOptions, PermissionString, Snowflake } from "discord.js";
-import { TextCommandOptions } from "../../typings";
-import BetterMessage from "../extensions/BetterMessage.js";
-import BetterClient from "../extensions/BetterClient.js";
-import Language from "./Language";
+import {
+    APIEmbed,
+    Message,
+    PermissionResolvable,
+    PermissionsBitField
+} from "discord.js";
+import Language from "./Language.js";
+import ExtendedClient from "../extensions/ExtendedClient.js";
 
 export default class TextCommand {
+    /** Our extended client. */
+    public readonly client: ExtendedClient;
+
+    /** The name for this application command. */
     public readonly name: string;
 
-    public readonly description: string;
+    /** The permissions the user requires to run this application command. */
+    public readonly permissions: PermissionsBitField;
 
-    public readonly aliases: string[];
+    /** The permissions the client requires to run this application command. */
+    public readonly clientPermissions: PermissionsBitField;
 
-    public readonly permissions: PermissionString[];
+    /** Whether or not this application command can only be used by developers. */
+    public readonly devOnly: boolean;
 
-    private readonly clientPermissions: PermissionString[];
+    /** Whether or not this application command can only be run by the guild owner. */
+    public readonly ownerOnly: boolean;
 
-    private readonly devOnly: boolean;
-
-    private readonly guildOnly: boolean;
-
-    private readonly ownerOnly: boolean;
-
+    /** The cooldown on this application command. */
     public readonly cooldown: number;
 
-    public readonly client: BetterClient;
-
     /**
-     * Create our text command,
-     * @param name The name of our text command.
-     * @param client Our client.
-     * @param options The options for our text command.
+     * Create a new text command.
+     * @param client Our extended client.
+     * @param options The options for this text command.
      */
     constructor(
-        name: string,
-        client: BetterClient,
-        options: TextCommandOptions
+        client: ExtendedClient,
+        options: {
+            name: string;
+            description?: string;
+            permissions?: PermissionResolvable[];
+            clientPermissions?: PermissionResolvable[];
+            devOnly?: boolean;
+            ownerOnly?: boolean;
+            cooldown?: number;
+        }
     ) {
-        this.name = name;
-        this.description = "";
-        this.aliases = options.aliases || [];
+        this.client = client;
 
-        this.permissions = options.permissions || [];
-        this.clientPermissions = client.config.requiredPermissions.concat(
-            options.clientPermissions || []
+        this.name = options.name;
+
+        this.permissions = new PermissionsBitField(options.permissions || []);
+        this.clientPermissions = new PermissionsBitField(
+            client.config.requiredPermissions.concat(
+                options.clientPermissions || []
+            )
         );
 
         this.devOnly = options.devOnly || false;
-        this.guildOnly = options.guildOnly || false;
         this.ownerOnly = options.ownerOnly || false;
 
         this.cooldown = options.cooldown || 0;
-
-        this.client = client;
     }
 
     /**
-     * Apply the cooldown for this text command.
-     * @param userId The userId to apply the cooldown on.
-     * @returns True or false if the cooldown is actually applied.
+     * Apply a cooldown to a user.
+     * @param userId The userID to apply the cooldown on.
+     * @param cooldown The cooldown to apply, if not provided the default cooldown for this text command will be used.
+     * @returns True or False if the cooldown was applied.
      */
-    public async applyCooldown(userId: Snowflake): Promise<boolean> {
-        if (this.cooldown)
-            return !!(await this.client.mongo
-                .db("cooldowns")
-                .collection("textCommands")
-                .updateOne(
-                    { textCommand: this.name.toLowerCase() },
-                    { $set: { [userId]: Date.now() } },
-                    { upsert: true }
-                ));
+    public async applyCooldown(userId: string, cooldown?: number) {
+        if (this.cooldown) {
+            const expiresAt = new Date(
+                Date.now() + (cooldown || this.cooldown)
+            );
+
+            return this.client.prisma.cooldown.upsert({
+                where: {
+                    commandName_commandType_userId: {
+                        commandName: this.name,
+                        commandType: "TEXT_COMMAND",
+                        userId
+                    }
+                },
+                update: {
+                    expiresAt
+                },
+                create: {
+                    commandName: this.name,
+                    commandType: "TEXT_COMMAND",
+                    expiresAt,
+                    userId
+                }
+            });
+        }
+
         return false;
     }
 
     /**
-     * Validate this interaction to make sure this text command can be executed.
-     * @param message The interaction that was created.
-     * @returns Options for the embed to send or null if the text command is valid.
+     * Validate that the message provided is valid.
+     * @param message The message to validate.
+     * @param language The language to use when replying to the message.
+     * @returns An APIEmbed if the message is invalid, null if the message is valid.
      */
     public async validate(
-        message: BetterMessage
-    ): Promise<{ title: string; description: string } | null> {
-        const language = (message.language ||
-            (await message.fetchLanguage())) as Language;
-
-        if (this.guildOnly && !message.inGuild())
+        message: Message,
+        language: Language
+    ): Promise<APIEmbed | null> {
+        if (this.ownerOnly && message.guild?.ownerId !== message.author.id)
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_GUILD_ONLY")
-            };
-        else if (this.ownerOnly && message.guild?.ownerId !== message.author.id)
-            return {
-                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY")
+                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY", {
+                    type: "text command"
+                })
             };
         else if (
             this.devOnly &&
-            !this.client.functions.isAdmin(message.author.id)
-        )
-            return {
-                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_DEVELOPER_ONLY")
-            };
-        else if (
-            message.guild &&
-            this.permissions.length &&
-            !message.member?.permissions?.has(this.permissions)
+            !this.client.config.admins.includes(message.author.id)
         )
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
                 description: language.get(
-                    this.permissions.filter(
-                        permission =>
-                            !message.member?.permissions?.has(permission)
-                    ).length === 1
+                    "MISSING_PERMISSIONS_DEVELOPER_ONLY",
+                    {
+                        type: "text command"
+                    }
+                )
+            };
+        else if (
+            message.inGuild() &&
+            this.permissions?.toArray().length &&
+            !message.member?.permissions.has(this.permissions)
+        ) {
+            const missingPermissions = this.permissions
+                .toArray()
+                .filter(
+                    permission => !message.member?.permissions.has(permission)
+                );
+
+            return {
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    missingPermissions.length === 1
                         ? "MISSING_PERMISSIONS_USER_PERMISSIONS_ONE"
                         : "MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER",
                     {
-                        permissions: this.permissions
-                            .filter(
-                                permission =>
-                                    !message.member?.permissions?.has(
-                                        permission
-                                    )
-                            )
-                            .map(
-                                permission =>
-                                    `**${this.client.functions.getPermissionName(
-                                        permission,
-                                        language
-                                    )}**`
-                            )
-                            .join(", "),
-                        type: "command"
+                        type: "text command",
+                        missingPermissions
                     }
                 )
             };
-        else if (
-            message.guild &&
-            this.clientPermissions.length &&
-            !message.guild?.me?.permissions.has(this.clientPermissions)
-        )
+        } else if (
+            message.inGuild() &&
+            this.clientPermissions.toArray().length &&
+            message.guild.members.me?.permissions.has(
+                this.clientPermissions
+            ) === false
+        ) {
+            const missingPermissions = this.clientPermissions
+                .toArray()
+                .filter(
+                    permission =>
+                        message.guild.members.me?.permissions.has(
+                            permission
+                        ) === false
+                );
+
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
                 description: language.get(
-                    this.permissions.filter(
-                        permission =>
-                            !message.guild?.me?.permissions?.has(permission)
-                    ).length === 1
+                    missingPermissions.length === 1
                         ? "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE"
                         : "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_OTHER",
                     {
-                        permissions: this.permissions
-                            .filter(
-                                permission =>
-                                    !message.guild?.me?.permissions?.has(
-                                        permission
-                                    )
-                            )
-                            .map(
-                                permission =>
-                                    `**${this.client.functions.getPermissionName(
-                                        permission,
-                                        language
-                                    )}**`
-                            )
-                            .join(", "),
-                        type: "command"
+                        type: "text command",
+                        missingPermissions
                     }
                 )
             };
-        else if (this.cooldown) {
-            const onCooldown = await this.client.mongo
-                .db("cooldowns")
-                .collection("textCommands")
-                .findOne({
-                    textCommand: this.name.toLowerCase(),
-                    [message.author.id]: { $exists: true }
-                });
-            if (onCooldown)
-                if (Date.now() - onCooldown[message.author.id] < this.cooldown)
+        } else if (this.cooldown) {
+            const cooldownItem = await this.client.prisma.cooldown.findUnique({
+                where: {
+                    commandName_commandType_userId: {
+                        commandName: this.name,
+                        commandType: "APPLICATION_COMMAND",
+                        userId: message.author.id
+                    }
+                }
+            });
+
+            if (cooldownItem)
+                if (Date.now() > cooldownItem.expiresAt.valueOf())
                     return {
                         title: language.get("TYPE_ON_COOLDOWN_TITLE"),
                         description: language.get(
                             "TYPE_ON_COOLDOWN_DESCRIPTION",
                             {
-                                type: "command",
+                                type: "text command",
                                 formattedTime: this.client.functions.format(
-                                    onCooldown[message.author.id] +
-                                        this.cooldown -
+                                    cooldownItem.expiresAt.valueOf() -
                                         Date.now(),
                                     true,
                                     language
@@ -196,23 +208,32 @@ export default class TextCommand {
                         )
                     };
         }
+
         return null;
     }
 
     /**
-     * This function must be evaluated to true or else this text command will not be executed.
-     * @param _message The message that was created.
+     * Pre-check the provided message after validating it.
+     * @param _message The message to pre-check.
+     * @param language The language to use when replying to the message.
+     * @returns A tuple containing a boolean and an APIEmbed if the message is invalid, a boolean if the message is valid.
      */
     public async preCheck(
-        _message: BetterMessage
-    ): Promise<[boolean, MessageEmbedOptions?]> {
+        _message: Message,
+        _language: Language
+    ): Promise<[boolean, APIEmbed?]> {
         return [true];
     }
 
     /**
      * Run this text command.
-     * @param _message The message that was created.
-     * @param _args
+     * @param _message The message to run this command on.
+     * @param _language The language to use when replying to the message.
+     * @param _args The arguments to use when running this command.
      */
-    public async run(_message: BetterMessage, _args: string[]): Promise<any> {}
+    public async run(
+        _message: Message,
+        _language: Language,
+        _args: string[]
+    ): Promise<any> {}
 }

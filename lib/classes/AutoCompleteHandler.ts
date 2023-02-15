@@ -1,18 +1,22 @@
-import AutoComplete from "./AutoComplete.js";
-import BetterClient from "../extensions/BetterClient.js";
-import BetterAutocompleteInteraction from "../extensions/BetterAutocompleteInteraction.js";
-
-void BetterAutocompleteInteraction;
+import { AutocompleteInteraction, Interaction } from "discord.js";
+import ExtendedClient from "../extensions/ExtendedClient";
+import AutoComplete from "./AutoComplete";
+import Language from "./Language";
 
 export default class AutoCompleteHandler {
-    private readonly client: BetterClient;
+    /** Our extended client. */
+    public readonly client: ExtendedClient;
 
-    constructor(client: BetterClient) {
+    /**
+     * Create our auto complete handler.
+     * @param client Our extended client.
+     */
+    constructor(client: ExtendedClient) {
         this.client = client;
     }
 
     /**
-     * Load all the autoCompletes in the autoCompletes directory.
+     * Load all of the auto completes in the autoCompletes directory.
      */
     public loadAutoCompletes() {
         this.client.functions
@@ -28,14 +32,17 @@ export default class AutoCompleteHandler {
                         ".js"
                     )
                     .forEach(async fileName => {
-                        const autoCompleteFile = await import(
+                        const AutoCompleteFile = await import(
                             `../../src/bot/autoCompletes/${parentFolder}/${fileName}`
                         );
-                        const autoComplete: AutoComplete =
-                            // eslint-disable-next-line new-cap
-                            new autoCompleteFile.default(this.client);
+
+                        // @ts-ignore
+                        const autoComplete = new AutoCompleteFile.default(
+                            this.client
+                        ) as AutoComplete;
+
                         return this.client.autoCompletes.set(
-                            autoComplete.name[0],
+                            autoComplete.accepts,
                             autoComplete
                         );
                     })
@@ -43,7 +50,7 @@ export default class AutoCompleteHandler {
     }
 
     /**
-     * Reload all the autoCompletes in the autoCompletes directory.
+     * Reload all of the auto completes.
      */
     public reloadAutoCompletes() {
         this.client.autoCompletes.clear();
@@ -51,25 +58,20 @@ export default class AutoCompleteHandler {
     }
 
     /**
-     * Fetch the autoComplete with the provided name.
-     * @param name The name to search for.
-     * @returns The autoComplete we've found.
+     * Get an auto complete by its name.
+     * @param name The name of the auto complete.
+     * @returns The auto complete with the specified name within the accepts field, otherwise undefined.
      */
-    private fetchAutoComplete(name: string): AutoComplete | undefined {
+    private getAutoComplete(name: string) {
         return this.client.autoCompletes.find(autoComplete =>
-            autoComplete.name.some(autoCompleteName =>
-                name.startsWith(autoCompleteName)
-            )
+            autoComplete.accepts.includes(name)
         );
     }
 
-    /**
-     * Handle the interaction created for this autoComplete to make sure the user and client can execute it.
-     * @param interaction The interaction created.
+    /** Handle an interaction properly to ensure that it can invoke an auto complete.
+     * @param interaction The interaction that is attempting to invoke an auto complete.
      */
-    public async handleAutoComplete(
-        interaction: BetterAutocompleteInteraction
-    ) {
+    public async handleAutoComplete(interaction: AutocompleteInteraction) {
         const name = [
             interaction.commandName,
             interaction.options.getSubcommandGroup(false) || "",
@@ -78,36 +80,41 @@ export default class AutoCompleteHandler {
         ]
             .filter(Boolean)
             .join("-");
-        const autoComplete = this.fetchAutoComplete(name);
+
+        const autoComplete = this.getAutoComplete(name);
         if (!autoComplete) return;
 
-        return this.runAutoComplete(autoComplete, interaction);
+        const userLanguage = await this.client.prisma.userLanguage.findUnique({
+            where: { userId: interaction.user.id }
+        });
+        const language = this.client.languageHandler.getLanguage(
+            userLanguage?.languageId || interaction.locale
+        );
+
+        return this.runAutoComplete(autoComplete, interaction, language);
     }
 
     /**
-     * Execute our autoComplete.
-     * @param autoComplete The autoComplete we want to execute.
-     * @param interaction The interaction for our autoComplete.
+     * Run an auto complete.
+     * @param autoComplete The auto complete we want to run.
+     * @param interaction The interaction that invoked the auto complete.
+     * @param language The language to use when replying to the interaction.
      */
     private async runAutoComplete(
         autoComplete: AutoComplete,
-        interaction: BetterAutocompleteInteraction
+        interaction: AutocompleteInteraction,
+        language: Language
     ) {
-        autoComplete
-            .run(interaction)
-            .then(() =>
-                this.client.dataDog.increment("autocompleteUsage", 1, [
-                    `completion:${autoComplete.name}`
-                ])
-            )
-            .catch(async (error): Promise<any> => {
-                this.client.logger.error(error);
-                await this.client.logger.sentry.captureWithInteraction(
-                    error,
-                    interaction
-                );
+        autoComplete.run(interaction, language).catch(async error => {
+            this.client.logger.error(error);
 
-                if (!interaction.responded) return interaction.respond([]);
-            });
+            await this.client.logger.sentry.captureWithInteraction(
+                error,
+                interaction as Interaction
+            );
+
+            if (!interaction.responded) return interaction.respond([]);
+        });
     }
 }
+

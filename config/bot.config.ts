@@ -1,55 +1,58 @@
-import { Intents, PermissionString, PresenceData } from "discord.js";
+import {
+    ActivityType,
+    GatewayIntentBits,
+    PresenceData,
+    PermissionResolvable
+} from "discord.js";
 
 export default {
+    /** The prefix the bot will use for text commands, the prefix is different depending on the NODE_ENV. */
     prefixes: process.env.NODE_ENV === "production" ? ["!"] : ["!!"],
+    /** The name the bot should use across the bot. */
     botName: "",
 
-    version: "1.0.0",
-    admins: [""],
+    /** The bot's current version, this is the first 7 characters from the current Git commit hash. */
+    version: "???",
+    /** A list of users that are marked as administrators of the bot, these users have access to eval commands. */
+    admins: ["619284841187246090"],
+    /* The ID for the test guild  */
+    testGuildId: "925264080250494977",
 
-    // If your bot isn't public, or open source, or doesn't have a
-    // Support server, feel free to remove the following variables.
-    supportServer: "",
-    minimalInvite: "",
-    gitHub: "",
-
+    /** The presence that should be displayed when the bot starts running. */
     presence: {
         status: "online",
         activities: [
             {
-                type: "PLAYING",
+                type: ActivityType.Playing,
                 name: "with /help"
             }
         ]
     } as PresenceData,
 
-    hastebin: "https://haste.polar.blue",
+    /** The hastebin server that we should use for uploading logs. */
+    hastebin: "https://haste.polars.cloud",
 
-    // To replace these colors please make sure you are providing a
-    // hexadecimal color.
+    /** An object of the type Record<string, string>, the key corelating to when the value (a hexadecimal code) should be used. */
     colors: {
-        primary: "5865F2",
-        success: "57F287",
-        warning: "FEE75C",
-        error: "ED4245"
+        primary: 0x5865f2,
+        success: 0x57f287,
+        warning: 0xfee75c,
+        error: 0xed4245
     },
 
-    // Properly update the following intents list for the bot to
-    // Function properly, it currently only listens for guilds
-    // And interactions.
-    intents: [Intents.FLAGS.GUILDS],
+    /** The list of intents the bot requires to function. */
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildBans,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.MessageContent
+    ],
 
-    // If your bot requires any permissions other than the ones below
-    // Add them and all commands and interactions will only work if
-    // The bot has said permissions in the environment they're run in.
+    /** A list of permissions that the bot needs to function at all. */
     requiredPermissions: [
-        "EMBED_LINKS",
-        "SEND_MESSAGES",
-        "USE_EXTERNAL_EMOJIS"
-    ] as PermissionString[],
-
-    dataDog: {
-        apiKey: process.env.DATADOG_API_KEY,
-        baseURL: "https://app.datadoghq.com/api/v1/"
-    }
+        "EmbedLinks",
+        "SendMessages"
+    ] as PermissionResolvable[]
 };

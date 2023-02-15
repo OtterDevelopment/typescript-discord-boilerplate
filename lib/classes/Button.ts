@@ -1,165 +1,172 @@
 import {
+    APIEmbed,
     ButtonInteraction,
-    MessageEmbedOptions,
-    PermissionString
+    PermissionResolvable,
+    PermissionsBitField
 } from "discord.js";
 import Language from "./Language.js";
-import { ButtonOptions } from "../../typings";
-import BetterClient from "../extensions/BetterClient.js";
-import BetterButtonInteraction from "../extensions/BetterButtonInteraction.js";
+import ExtendedClient from "../extensions/ExtendedClient.js";
 
 export default class Button {
+    /** Our extended client. */
+    public readonly client: ExtendedClient;
+
+    /** The name for this button. */
     public readonly name: string;
 
-    private readonly permissions: PermissionString[];
+    /** The permissions a user requires to run this button. */
+    public readonly permissions: PermissionsBitField;
 
-    private readonly clientPermissions: PermissionString[];
+    /** The permissions the clint requires to run this button. */
+    public readonly clientPermissions: PermissionsBitField;
 
-    private readonly devOnly: boolean;
+    /** Whether this button should only be able to be run by my developers. */
+    public readonly devOnly: boolean;
 
-    private readonly guildOnly: boolean;
-
-    private readonly ownerOnly: boolean;
-
-    public readonly client: BetterClient;
+    /** Whether this button should only be able to be run by server owners. */
+    public readonly ownerOnly: boolean;
 
     /**
-     * Create our Button.
-     * @param name The beginning of the customId this button listens for.
-     * @param client Our client.
-     * @param options The options for our button.
+     * Create our button.
+     * @param name The name for this button.
+     * @param client Our extended client.
+     * @param options The options for this button.
      */
-    constructor(name: string, client: BetterClient, options?: ButtonOptions) {
+    constructor(
+        name: string,
+        client: ExtendedClient,
+        options: {
+            permissions?: PermissionResolvable[];
+            clientPermissions?: PermissionResolvable[];
+            devOnly?: boolean;
+            ownerOnly?: boolean;
+        }
+    ) {
+        this.client = client;
+
         this.name = name;
 
-        this.permissions = options?.permissions || [];
-        this.clientPermissions = client.config.requiredPermissions.concat(
-            options?.clientPermissions || []
+        this.permissions = new PermissionsBitField(options.permissions || []);
+        this.clientPermissions = new PermissionsBitField(
+            client.config.requiredPermissions.concat(
+                options.clientPermissions || []
+            )
         );
 
-        this.devOnly = options?.devOnly || false;
-        this.guildOnly = options?.guildOnly || false;
-        this.ownerOnly = options?.ownerOnly || false;
-
-        this.client = client;
+        this.devOnly = options.devOnly || false;
+        this.ownerOnly = options.ownerOnly || false;
     }
 
     /**
-     * Validate this interaction to make sure this button can be executed.
-     * @param interaction The interaction that was created.
-     * @returns The error or null if the command is valid.
+     * Validate that the interaction provided is valid.
+     * @param interaction The interaction to validate.
+     * @param language The language to use when replying to the interaction.
+     * @returns An APIEmbed if the interaction is invalid, null if the interaction is valid.
      */
     public async validate(
-        interaction: BetterButtonInteraction
-    ): Promise<MessageEmbedOptions | null> {
-        const language = (interaction.language ||
-            (await interaction.fetchLanguage())) as Language;
-
-        if (this.guildOnly && !interaction.inGuild())
-            return {
-                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_GUILD_ONLY")
-            };
-        else if (
+        interaction: ButtonInteraction,
+        language: Language
+    ): Promise<APIEmbed | null> {
+        if (
             this.ownerOnly &&
             interaction.guild?.ownerId !== interaction.user.id
         )
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY")
+                description: language.get("MISSING_PERMISSIONS_OWNER_ONLY", {
+                    type: "button"
+                })
             };
         else if (
             this.devOnly &&
-            !this.client.functions.isAdmin(interaction.user.id)
-        )
-            return {
-                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
-                description: language.get("MISSING_PERMISSIONS_DEVELOPER_ONLY")
-            };
-        else if (
-            interaction.guild &&
-            this.permissions.length &&
-            !interaction.memberPermissions?.has(this.permissions)
+            !this.client.config.admins.includes(interaction.user.id)
         )
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
                 description: language.get(
-                    this.permissions.filter(
-                        permission =>
-                            !interaction.memberPermissions?.has(permission)
-                    ).length === 1
+                    "MISSING_PERMISSIONS_DEVELOPER_ONLY",
+                    {
+                        type: "button"
+                    }
+                )
+            };
+        else if (
+            interaction.inGuild() &&
+            this.permissions?.toArray().length &&
+            !interaction.memberPermissions.has(this.permissions)
+        ) {
+            const missingPermissions = this.permissions
+                .toArray()
+                .filter(
+                    permission => !interaction.memberPermissions.has(permission)
+                );
+
+            return {
+                title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
+                description: language.get(
+                    missingPermissions.length === 1
                         ? "MISSING_PERMISSIONS_USER_PERMISSIONS_ONE"
                         : "MISSING_PERMISSIONS_USER_PERMISSIONS_OTHER",
                     {
-                        permissions: this.permissions
-                            .filter(
-                                permission =>
-                                    !interaction.memberPermissions?.has(
-                                        permission
-                                    )
-                            )
-                            .map(
-                                permission =>
-                                    `**${this.client.functions.getPermissionName(
-                                        permission,
-                                        language
-                                    )}**`
-                            )
-                            .join(", "),
-                        type: "button"
+                        type: "button",
+                        missingPermissions
                     }
                 )
             };
-        else if (
-            interaction.guild &&
-            this.clientPermissions.length &&
-            !interaction.guild?.me?.permissions.has(this.clientPermissions)
-        )
+        } else if (
+            interaction.inGuild() &&
+            this.clientPermissions.toArray().length &&
+            interaction.guild!.members.me?.permissions.has(
+                this.clientPermissions
+            ) === false
+        ) {
+            const missingPermissions = this.clientPermissions
+                .toArray()
+                .filter(
+                    permission =>
+                        interaction.guild!.members.me?.permissions.has(
+                            permission
+                        ) === false
+                );
+
             return {
                 title: language.get("MISSING_PERMISSIONS_BASE_TITLE"),
                 description: language.get(
-                    this.permissions.filter(
-                        permission =>
-                            !interaction.guild?.me?.permissions?.has(permission)
-                    ).length === 1
+                    missingPermissions.length === 1
                         ? "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_ONE"
                         : "MISSING_PERMISSIONS_CLIENT_PERMISSIONS_OTHER",
                     {
-                        permissions: this.permissions
-                            .filter(
-                                permission =>
-                                    !interaction.guild?.me?.permissions?.has(
-                                        permission
-                                    )
-                            )
-                            .map(
-                                permission =>
-                                    `**${this.client.functions.getPermissionName(
-                                        permission,
-                                        language
-                                    )}**`
-                            )
-                            .join(", "),
-                        type: "button"
+                        type: "button",
+                        missingPermissions
                     }
                 )
             };
+        }
+
         return null;
     }
 
     /**
-     * This function must be evaluated to true or else this slash command will not be executed.
-     * @param _interaction The interaction that was created.
+     * Pre-check the provided interaction after validating it.
+     * @param _interaction The interaction to pre-check.
+     * @param _language The language to use when replying to the interaction.
+     * @returns A tuple containing a boolean and an APIEmbed if the interaction is invalid, a boolean if the interaction is valid.
      */
     public async preCheck(
-        _interaction: ButtonInteraction
-    ): Promise<[boolean, MessageEmbedOptions?]> {
+        _interaction: ButtonInteraction,
+        _language: Language
+    ): Promise<[boolean, APIEmbed?]> {
         return [true];
     }
 
     /**
      * Run this button.
-     * @param _interaction The interaction that was created.
+     * @param _interaction The interaction to run this button on.
+     * @param _language The language to use when replying to the interaction.
      */
-    public async run(_interaction: ButtonInteraction): Promise<any> {}
+    public async run(
+        _interaction: ButtonInteraction,
+        _language: Language
+    ): Promise<any> {}
 }
+

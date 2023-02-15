@@ -1,32 +1,48 @@
-import BetterClient from "../../../../lib/extensions/BetterClient.js";
-import BetterMessage from "../../../../lib/extensions/BetterMessage.js";
+import {
+    ApplicationCommandType,
+    ChatInputCommandInteraction
+} from "discord.js";
+import Language from "../../../../lib/classes/Language.js";
+import ExtendedClient from "../../../../lib/extensions/ExtendedClient.js";
 import ApplicationCommand from "../../../../lib/classes/ApplicationCommand.js";
-import BetterCommandInteraction from "../../../../lib/extensions/BetterCommandInteraction.js";
 
 export default class Ping extends ApplicationCommand {
-    constructor(client: BetterClient) {
-        super("ping", client, {
-            type: "CHAT_INPUT",
-            description: `Pong! Get the current ping / latency of ${client.config.botName}.`
+    /**
+     * Create our ping command.
+     * @param client Our extended client.
+     */
+    constructor(client: ExtendedClient) {
+        super(client, {
+            options: {
+                name: "ping",
+                description: `Pong! Get the current ping / latency of ${client.config.botName}.`,
+                type: ApplicationCommandType.ChatInput
+            }
         });
     }
 
-    public override async run(interaction: BetterCommandInteraction) {
-        const language =
-            interaction.language || (await interaction.fetchLanguage());
-
-        const message = (await interaction.reply({
+    /**
+     * Run this application command.
+     * @param interaction The interaction to run this command on.
+     * @param language The language to use when replying to the interaction.
+     */
+    public override async run(
+        interaction: ChatInputCommandInteraction,
+        language: Language
+    ) {
+        const message = await interaction.reply({
             content: language.get("PING"),
-            fetchReply: true
-        })) as unknown as BetterMessage;
+            fetchReply: true,
+            ephemeral: true
+        });
         const hostLatency =
             message.createdTimestamp - interaction.createdTimestamp;
         const apiLatency = Math.round(this.client.ws.ping);
         return interaction.editReply({
             content: language.get("PONG", {
-                roundTrip: hostLatency + apiLatency,
+                apiLatency,
                 hostLatency,
-                apiLatency
+                roundTrip: hostLatency + apiLatency
             })
         });
     }

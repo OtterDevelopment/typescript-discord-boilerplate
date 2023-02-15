@@ -28,6 +28,7 @@ writeFile(
 
 const interfaceArray = [...interfaceMap];
 
+// eslint-disable-next-line no-console
 console.log(
     `Generated an interface for ${interfaceArray.length} keys, ${
         interfaceArray.filter(([_, value]) => value.length > 0).length

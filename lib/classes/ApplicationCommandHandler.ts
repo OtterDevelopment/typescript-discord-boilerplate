@@ -1,33 +1,37 @@
-import { Snowflake } from "discord.js";
-import ApplicationCommand from "./ApplicationCommand.js";
-import BetterClient from "../extensions/BetterClient.js";
-import BetterCommandInteraction from "../extensions/BetterCommandInteraction.js";
-import BetterContextMenuInteraction from "../extensions/BetterContextMenuInteraction.js";
+import {
+    ApplicationCommandType,
+    CommandInteraction,
+    Interaction,
+    InteractionReplyOptions
+} from "discord.js";
 import Language from "./Language.js";
-
-void BetterCommandInteraction;
-void BetterContextMenuInteraction;
+import ApplicationCommand from "./ApplicationCommand.js";
+import ExtendedClient from "../extensions/ExtendedClient.js";
+import Logger from "./Logger.js";
 
 export default class ApplicationCommandHandler {
-    private readonly client: BetterClient;
+    /** Our extended client. */
+    public readonly client: ExtendedClient;
 
-    private readonly coolDownTime: number;
+    /** How long a user must wait before being able to run an application command again. */
+    public readonly coolDownTime: number;
 
-    private coolDowns: Set<Snowflake>;
+    /** A list of user IDs that currently have a cooldown applied. */
+    public readonly cooldowns: Set<string>;
 
     /**
-     * Create our ApplicationCommandHandler.
-     * @param client Our client.
+     * Create our application command handler.
+     * @param client Our extended client.
      */
-    constructor(client: BetterClient) {
+    constructor(client: ExtendedClient) {
         this.client = client;
 
-        this.coolDownTime = 1000;
-        this.coolDowns = new Set();
+        this.coolDownTime = 200;
+        this.cooldowns = new Set();
     }
 
     /**
-     * Load all the application commands in the applicationCommands directory.
+     * Load all of the application commands in the applicationCommands directory.
      */
     public loadApplicationCommands() {
         this.client.functions
@@ -43,12 +47,15 @@ export default class ApplicationCommandHandler {
                         ".js"
                     )
                     .forEach(async fileName => {
-                        const commandFile = await import(
+                        const CommandFile = await import(
                             `../../src/bot/applicationCommands/${parentFolder}/${fileName}`
                         );
-                        const command: ApplicationCommand =
-                            // eslint-disable-next-line new-cap
-                            new commandFile.default(this.client);
+
+                        // @ts-ignore
+                        const command = new CommandFile.default(
+                            this.client
+                        ) as ApplicationCommand;
+
                         return this.client.applicationCommands.set(
                             command.name,
                             command
@@ -57,308 +64,318 @@ export default class ApplicationCommandHandler {
             );
     }
 
-    public registerApplicationCommands() {
+    /**
+     * Register all of the application commands on Discord.
+     * @returns True or False depending on if the application commands were registered successfully.
+     */
+    public async registerApplicationCommands() {
         if (process.env.NODE_ENV === "production") {
-            this.client.application?.commands.set(
-                this.client.applicationCommands.map(applicationCommand => {
-                    if (applicationCommand.type === "CHAT_INPUT")
-                        return {
-                            name: applicationCommand.name,
-                            description: applicationCommand.description || "",
-                            options: applicationCommand.options.options || [],
-                            type: applicationCommand.type
-                        };
-                    else
-                        return {
-                            name: applicationCommand.name,
-                            options: applicationCommand.options.options || [],
-                            type: applicationCommand.type
-                        };
-                })
-            );
-            return Promise.all(
-                this.client.guilds.cache.map(guild =>
-                    guild.commands.set([]).catch(error => {
+            const guildOnlyCommands: Record<string, ApplicationCommand[]> = {};
+
+            this.client.applicationCommands
+                .filter(applicationCommand => applicationCommand.guilds.length)
+                .forEach(applicationCommand => {
+                    applicationCommand.guilds.forEach(guildId => {
+                        if (!guildOnlyCommands[guildId])
+                            guildOnlyCommands[guildId] = [];
+
+                        guildOnlyCommands[guildId].push(applicationCommand);
+                    });
+                });
+
+            return Promise.all([
+                this.client.application?.commands
+                    .set([], this.client.config.testGuildId)
+                    .catch(error => {
                         if (error.code === 50001)
                             this.client.logger.error(
                                 null,
-                                `I encountered DiscordAPIError: Missing Access in ${guild.name} [${guild.id}] when trying to set application commands!`
+                                `I encountered DiscordAPIError: Missing Access in the test guild [${this.client.config.testGuildId}] when trying to delete a non-existent application command.`
                             );
                         else {
-                            this.client.logger.error(error);
-                            this.client.logger.sentry.captureWithExtras(error, {
-                                Guild: guild.name,
-                                "Guild ID": guild.id,
+                            Logger.error(error);
+                            Logger.sentry.captureWithExtras(error, {
+                                "Guild ID": this.client.config.testGuildId,
                                 "Application Command Count":
                                     this.client.applicationCommands.size,
                                 "Application Commands":
-                                    this.client.applicationCommands.map(
-                                        applicationCommand => {
-                                            return {
-                                                name: applicationCommand.name,
-                                                description:
-                                                    applicationCommand.description,
-                                                type: applicationCommand.type,
-                                                options:
-                                                    applicationCommand.options
-                                            };
-                                        }
-                                    )
+                                    this.client.applicationCommands
                             });
                         }
-                    })
-                )
-            );
-        } else
-            return Promise.all(
-                this.client.guilds.cache.map(async guild =>
-                    guild.commands
-                        .set(
-                            this.client.applicationCommands.map(
-                                applicationCommand => {
-                                    if (
-                                        applicationCommand.type === "CHAT_INPUT"
-                                    )
-                                        return {
-                                            name: applicationCommand.name,
-                                            description:
-                                                applicationCommand.description ||
-                                                "",
-                                            options:
-                                                applicationCommand.options
-                                                    .options || [],
-                                            type: applicationCommand.type
-                                        };
-                                    else
-                                        return {
-                                            name: applicationCommand.name,
-                                            options:
-                                                applicationCommand.options
-                                                    .options || [],
-                                            type: applicationCommand.type
-                                        };
-                                }
-                            )
+                    }),
+                this.client.application?.commands.set(
+                    this.client.applicationCommands
+                        .filter(
+                            applicationCommand =>
+                                !applicationCommand.guilds.length
                         )
-                        .catch(error => {
-                            if (error.code === 50001)
-                                this.client.logger.error(
-                                    null,
-                                    `I encountered DiscordAPIError: Missing Access in ${guild.name} [${guild.id}] when trying to set slash commands!`
-                                );
-                            else {
-                                this.client.logger.error(error);
-                                this.client.logger.sentry.captureWithExtras(
-                                    error,
-                                    {
-                                        Guild: guild.name,
-                                        "Guild ID": guild.id,
-                                        "Application Command Count":
-                                            this.client.applicationCommands
-                                                .size,
-                                        "Application Commands":
-                                            this.client.applicationCommands.map(
-                                                applicationCommand => {
-                                                    return {
-                                                        name: applicationCommand.name,
-                                                        description:
-                                                            applicationCommand.description,
-                                                        type: applicationCommand.type,
-                                                        options:
-                                                            applicationCommand.options
-                                                    };
-                                                }
-                                            )
-                                    }
-                                );
-                            }
-                        })
+                        .map(applicationCommand => applicationCommand.options)
+                ),
+                Object.entries(guildOnlyCommands).map(([key, value]) =>
+                    this.client.application?.commands.set(
+                        value
+                            .filter(
+                                applicationCommand =>
+                                    !applicationCommand.guilds.length
+                            )
+                            .map(
+                                applicationCommand => applicationCommand.options
+                            ),
+                        key
+                    )
                 )
-            );
+            ]);
+        }
+
+        return this.client.application?.commands.set(
+            this.client.applicationCommands.map(
+                applicationCommand => applicationCommand.options
+            ),
+            this.client.config.testGuildId
+        );
     }
 
     /**
-     * Reload all the application commands in the applicationCommands directory.
+     * Reload all of the application commands.
+     * @param register Whether or not to register the application commands after reloading them.
+     * @returns The result of the registerApplicationCommands method if register is true, otherwise undefined.
      */
-    public reloadApplicationCommands() {
+    public reloadApplicationCommands(register: boolean = true) {
         this.client.applicationCommands.clear();
         this.loadApplicationCommands();
+
+        if (register) return this.registerApplicationCommands();
     }
 
     /**
-     * Fetch the application command that has the provided name.
-     * @param name The name to search for.
-     * @return The application command we've found.
+     * Get an application command by its name.
+     * @param name The name of the application command.
+     * @returns The application command with the specified name if it exists, otherwise undefined.
      */
-    private fetchCommand(name: string): ApplicationCommand | undefined {
+    private getApplicationCommand(name: string) {
         return this.client.applicationCommands.get(name);
     }
 
     /**
-     * Handle the interaction created for this application command to make sure the user and client can execute it.
-     * @param interaction The interaction created.
+     * Handle an interaction properly to ensure that it can invoke an application command.
+     * @param interaction The interaction that is attempting to invoke an application command.
      */
-    public async handleCommand(
-        interaction: BetterCommandInteraction | BetterContextMenuInteraction
-    ) {
-        const command = this.fetchCommand(interaction.commandName);
-        if (!command) {
+    public async handleApplicationCommand(interaction: CommandInteraction) {
+        const userLanguage = await this.client.prisma.userLanguage.findUnique({
+            where: {
+                userId: interaction.user.id
+            }
+        });
+        const language = this.client.languageHandler.getLanguage(
+            userLanguage?.languageId || interaction.locale
+        );
+
+        const applicationCommand = this.getApplicationCommand(
+            interaction.commandName
+        );
+
+        if (!applicationCommand) {
             this.client.logger.error(
-                `${interaction.user.tag} [${interaction.user.id}] invoked application command ${interaction.commandName} even though it doesn't exist.`
+                null,
+                `${interaction.user.tag} [${interaction.user.id}] invoked application command ${interaction.commandName} but it does not exist.`
             );
             const sentryId =
                 await this.client.logger.sentry.captureWithInteraction(
-                    new Error(`Non existent application command invoked`),
-                    interaction
-                );
-            if (process.env.NODE_ENV === "production")
-                this.client.application?.commands.delete(
-                    interaction.commandName
-                );
-            else
-                await Promise.all(
-                    this.client.guilds.cache.map(guild =>
-                        guild.commands
-                            .delete(interaction.commandName)
-                            .catch(error => {
-                                if (error.code === 50001)
-                                    this.client.logger.error(
-                                        null,
-                                        `I encountered DiscordAPIError: Missing Access in ${guild.name} [${guild.id}] when trying to set application commands!`
-                                    );
-                                else {
-                                    this.client.logger.error(error);
-                                    this.client.logger.sentry.captureWithExtras(
-                                        error,
-                                        {
-                                            Guild: guild.name,
-                                            "Guild ID": guild.id,
-                                            "Application Command Count":
-                                                this.client.applicationCommands
-                                                    .size,
-                                            "Application Commands":
-                                                this.client.applicationCommands.map(
-                                                    cmd => {
-                                                        return {
-                                                            name: cmd.name,
-                                                            description:
-                                                                cmd.description,
-                                                            type: cmd.type,
-                                                            options: cmd.options
-                                                        };
-                                                    }
-                                                )
-                                        }
-                                    );
-                                }
-                            })
-                    )
+                    new Error("Non existent application command invoked."),
+                    interaction as Interaction
                 );
 
-            const language = (interaction.language ||
-                (await interaction.fetchLanguage())) as Language;
+            await this.client.application?.commands
+                .delete(
+                    interaction.commandName,
+                    process.env.NODE_ENV === "production"
+                        ? this.client.config.testGuildId
+                        : undefined
+                )
+                .catch(error => {
+                    if (error.code === 50001)
+                        this.client.logger.error(
+                            null,
+                            `I encountered DiscordAPIError: Missing Access in the test guild [${this.client.config.testGuildId}] when trying to delete a non-existent application command.`
+                        );
+                    else {
+                        Logger.error(error);
+                        Logger.sentry.captureWithExtras(error, {
+                            "Guild ID": this.client.config.testGuildId,
+                            "Application Command Count":
+                                this.client.applicationCommands.size,
+                            "Application Commands":
+                                this.client.applicationCommands
+                        });
+                    }
+                });
 
-            return interaction.reply(
-                this.client.functions.generateErrorMessage({
-                    title: language.get("NON_EXISTENT_TITLE"),
-                    description: language.get("NON_EXISTENT_DESCRIPTION", {
-                        type: "command",
-                        name: interaction.commandName,
-                        username:
-                            interaction.guild?.me?.nickname ||
-                            interaction.user.username ||
-                            this.client.config.botName
-                    }),
-                    footer: { text: `Sentry Event ID: ${sentryId} ` }
-                })
-            );
+            return interaction.reply({
+                embeds: [
+                    {
+                        title: language.get("NON_EXISTENT_TITLE"),
+                        description: language.get("NON_EXISTENT_DESCRIPTION", {
+                            name: interaction.commandName.toLowerCase(),
+                            type:
+                                interaction.commandType ===
+                                ApplicationCommandType.ChatInput
+                                    ? "slash command"
+                                    : "context menu",
+                            username: interaction.user.username
+                        }),
+                        footer: {
+                            text: `Sentry Event ID: ${sentryId}`
+                        },
+                        color: this.client.config.colors.error
+                    }
+                ],
+                ephemeral: true
+            });
         }
 
-        if (
-            process.env.NODE_ENV === "development" &&
-            !this.client.functions.isAdmin(interaction.user.id)
-        )
-            return;
-
-        const missingPermissions = await command.validate(interaction);
+        const missingPermissions = await applicationCommand.validate(
+            interaction,
+            language
+        );
         if (missingPermissions)
-            return interaction.reply(
-                this.client.functions.generateErrorMessage(missingPermissions)
-            );
+            return interaction.reply({
+                embeds: [
+                    {
+                        ...missingPermissions,
+                        color: this.client.config.colors.error
+                    }
+                ],
+                ephemeral: true
+            });
 
-        const preChecked = await command.preCheck(interaction);
-        if (!preChecked[0]) {
-            if (preChecked[1])
-                await interaction.reply(
-                    this.client.functions.generateErrorMessage(preChecked[1])
-                );
+        const [preChecked, preCheckedResponse] =
+            await applicationCommand.preCheck(interaction, language);
+        if (!preChecked) {
+            if (preCheckedResponse)
+                await interaction.reply({
+                    embeds: [
+                        {
+                            ...preCheckedResponse,
+                            color: this.client.config.colors.error
+                        }
+                    ],
+                    ephemeral: true
+                });
+
             return;
         }
 
-        return this.runCommand(command, interaction);
+        return this.runApplicationCommand(
+            applicationCommand,
+            interaction,
+            language
+        );
     }
 
     /**
-     * Execute our application command.
-     * @param command The application command we want to execute.
-     * @param interaction The interaction that was created for our application command.
+     * Run an application command.
+     * @param applicationCommand The application command we want to run.
+     * @param interaction The interaction that invoked the application command.
+     * @param language The language to use when replying to the interaction.
      */
-    private async runCommand(
-        command: ApplicationCommand,
-        interaction: BetterCommandInteraction | BetterContextMenuInteraction
-    ): Promise<any> {
-        const language = (interaction.language ||
-            (await interaction.fetchLanguage())) as Language;
-
-        if (this.coolDowns.has(interaction.user.id))
-            return interaction.reply(
-                this.client.functions.generateErrorMessage({
-                    title: language.get("COOLDOWN_ON_TYPE_TITLE", {
-                        type: "Command"
-                    }),
-                    description: language.get("COOLDOWN_ON_TYPE_DESCRIPTION", {
-                        type: "command"
-                    })
-                })
-            );
+    private async runApplicationCommand(
+        applicationCommand: ApplicationCommand,
+        interaction: CommandInteraction,
+        language: Language
+    ) {
+        if (this.cooldowns.has(interaction.user.id))
+            return interaction.reply({
+                embeds: [
+                    {
+                        title: language.get("COOLDOWN_ON_TYPE_TITLE", {
+                            type:
+                                applicationCommand.type ===
+                                ApplicationCommandType.ChatInput
+                                    ? "Slash Command"
+                                    : "Context Menu"
+                        }),
+                        description: language.get(
+                            "COOLDOWN_ON_TYPE_DESCRIPTION",
+                            {
+                                type:
+                                    applicationCommand.type ===
+                                    ApplicationCommandType.ChatInput
+                                        ? "slash command"
+                                        : "context menu"
+                            }
+                        ),
+                        color: this.client.config.colors.error
+                    }
+                ],
+                ephemeral: true
+            });
 
         this.client.usersUsingBot.add(interaction.user.id);
-        command
-            .run(interaction)
+
+        applicationCommand
+            .run(interaction, language)
             .then(async () => {
-                if (command.cooldown)
-                    await command.applyCooldown(interaction.user.id);
+                if (applicationCommand.cooldown)
+                    await applicationCommand.applyCooldown(interaction.user.id);
+
                 this.client.usersUsingBot.delete(interaction.user.id);
-                this.client.dataDog.increment("slashCommandUsage", 1, [
-                    `command:${command.name}`
-                ]);
+                this.client.metrics.incrementCommandUse(
+                    applicationCommand.name,
+                    applicationCommand.type === ApplicationCommandType.ChatInput
+                        ? "slash"
+                        : "context",
+                    true,
+                    this.client.shard?.ids[0] ?? 0
+                );
             })
-            .catch(async (error): Promise<any> => {
+            .catch(async error => {
+                this.client.metrics.incrementCommandUse(
+                    applicationCommand.name,
+                    applicationCommand.type === ApplicationCommandType.ChatInput
+                        ? "slash"
+                        : "context",
+                    false,
+                    this.client.shard?.ids[0] ?? 0
+                );
                 this.client.logger.error(error);
+
                 const sentryId =
                     await this.client.logger.sentry.captureWithInteraction(
                         error,
-                        interaction
+                        interaction as Interaction
                     );
-                const toSend = this.client.functions.generateErrorMessage({
-                    title: language.get("AN_ERROR_HAS_OCCURRED_TITLE"),
-                    description: language.get(
-                        "AN_ERROR_HAS_OCCURRED_DESCRIPTION",
-                        { type: "command", name: command.name }
-                    ),
-                    footer: { text: `Sentry Event ID: ${sentryId} ` }
-                });
-                if (interaction.replied) return interaction.followUp(toSend);
-                else if (interaction.deferred)
-                    return interaction.editReply(toSend);
-                else
-                    return interaction.reply({
-                        ...toSend
-                    });
+
+                const toSend = {
+                    embeds: [
+                        {
+                            title: language.get("AN_ERROR_HAS_OCCURRED_TITLE"),
+                            description: language.get(
+                                "AN_ERROR_HAS_OCCURRED_DESCRIPTION",
+                                {
+                                    name: interaction.commandName.toLowerCase(),
+                                    type:
+                                        interaction.commandType ===
+                                        ApplicationCommandType.ChatInput
+                                            ? "slash command"
+                                            : "context menu"
+                                }
+                            ),
+                            footer: {
+                                text: `Sentry Event ID: ${sentryId}`
+                            },
+                            color: this.client.config.colors.error
+                        }
+                    ],
+                    ephemeral: true
+                } satisfies InteractionReplyOptions;
+
+                if (interaction.isRepliable()) return interaction.reply(toSend);
+                else return interaction.followUp(toSend);
             });
-        this.coolDowns.add(interaction.user.id);
+
+        this.cooldowns.add(interaction.user.id);
         setTimeout(
-            () => this.coolDowns.delete(interaction.user.id),
+            () => this.cooldowns.delete(interaction.user.id),
             this.coolDownTime
         );
     }

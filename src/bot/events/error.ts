@@ -6,9 +6,11 @@ export default class Err extends EventHandler {
         this.client.logger.sentry.captureWithExtras(error, {
             Shard: this.client.shard?.ids[0]
         });
-        const haste = await this.client.functions.uploadHaste(
+
+        const haste = await this.client.functions.uploadToHastebin(
             `${error.name}: ${error.message}`
         );
+
         return this.client.logger.webhookLog("console", {
             content: `${this.client.functions.generateTimestamp()} Shard ${
                 this.client.shard?.ids[0]
@@ -16,3 +18,4 @@ export default class Err extends EventHandler {
         });
     }
 }
+

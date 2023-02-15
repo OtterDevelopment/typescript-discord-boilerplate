@@ -1,17 +1,24 @@
-import BetterClient from "../extensions/BetterClient.js";
 import Language, { LanguageOptions } from "./Language.js";
+import ExtendedClient from "../extensions/ExtendedClient.js";
 
 export default class LanguageHandler {
-    public readonly client: BetterClient;
+    /** Our extended client */
+    public readonly client: ExtendedClient;
 
+    /** A set containing all of our languages. */
     public languages = new Set<Language>();
+
+    /** The default language to resort to. */
+    public defaultLanguage: Language | null;
 
     /**
      * Create our LanguageHandler class.
      * @param client Our client.
      */
-    constructor(client: BetterClient) {
+    constructor(client: ExtendedClient) {
         this.client = client;
+
+        this.defaultLanguage = null;
     }
 
     /**
@@ -36,7 +43,12 @@ export default class LanguageHandler {
                 );
 
                 this.languages.add(language);
+                language.init();
             });
+
+        this.defaultLanguage = this.enabledLanguages.find(
+            language => language.id === "en-US"
+        )!;
     }
 
     /**
@@ -51,12 +63,16 @@ export default class LanguageHandler {
      * @param languageId The language id to get.
      * @returns The language with the given id.
      */
-    public getLanguage(languageId: string) {
+    public getLanguage(languageId?: string) {
+        if (!this.defaultLanguage)
+            this.defaultLanguage = this.enabledLanguages.find(
+                language => language.id === "en-US"
+            )!;
+
         return (
             this.enabledLanguages.find(
                 language => language.id === languageId
-            ) ||
-            this.enabledLanguages.find(language => language.id === "en-US")!
+            ) || this.defaultLanguage
         );
     }
 }
