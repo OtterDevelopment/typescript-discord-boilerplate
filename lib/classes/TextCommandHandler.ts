@@ -179,7 +179,6 @@ export default class TextCommandHandler {
                     await textCommand.applyCooldown(message.author.id);
 
                 this.client.usersUsingBot.delete(message.author.id);
-                // TODO: Implement Grafana or Datadog and add metrics here.
                 this.client.metrics.incrementCommandUse(
                     textCommand.name,
                     "text",

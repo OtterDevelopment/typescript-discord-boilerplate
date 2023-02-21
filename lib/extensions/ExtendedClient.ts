@@ -253,7 +253,7 @@ export default class ExtendedClient extends Client {
      * Fetch all the stats for our client.
      */
     public async fetchStats() {
-        if (this.isReady() === false) return this.cachedStats;
+        if (!this.isReady()) return this.cachedStats;
 
         const stats = await this.shard?.broadcastEval(client => {
             return {
